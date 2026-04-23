@@ -117,7 +117,7 @@
   color-scheme: dark;
 }
 
-/* ---------------- glass · light (legacy soft-mist) ---------------- */
+/* ---------------- glass · light (legacy soft-mist, tightened for Pulsar) ---------------- */
 [data-theme="glass-light"] {
   --bg: #edf2fb;
   --bg-elevated: #e4ebf5;
@@ -143,10 +143,10 @@
   --warning-fg: #ffffff;
   --danger: #b04a5d;
   --danger-fg: #ffffff;
-  --radius-sm: 12px;
-  --radius-md: 20px;
-  --radius-lg: 30px;
-  --shadow-sm: 0 18px 40px rgba(96, 124, 165, 0.1);
+  --radius-sm: 8px;
+  --radius-md: 16px;
+  --radius-lg: 20px;
+  --shadow-sm: 0 12px 28px rgba(96, 124, 165, 0.08);
   --page-bg:
     radial-gradient(circle at 18% 18%, rgba(170, 218, 255, 0.28), transparent 22%),
     radial-gradient(circle at 82% 14%, rgba(185, 233, 219, 0.24), transparent 24%),
@@ -181,10 +181,10 @@
   --warning-fg: #0f131d;
   --danger: #e07583;
   --danger-fg: #0f131d;
-  --radius-sm: 12px;
-  --radius-md: 20px;
-  --radius-lg: 30px;
-  --shadow-sm: 0 18px 40px rgba(0, 0, 0, 0.45);
+  --radius-sm: 8px;
+  --radius-md: 16px;
+  --radius-lg: 20px;
+  --shadow-sm: 0 12px 28px rgba(0, 0, 0, 0.4);
   --page-bg:
     radial-gradient(circle at 18% 18%, rgba(60, 110, 170, 0.2), transparent 22%),
     radial-gradient(circle at 82% 14%, rgba(70, 140, 120, 0.14), transparent 24%),

@@ -55,7 +55,7 @@ textarea {
   border: 1px solid var(--border);
   background: var(--surface-raised);
   border-radius: var(--radius-md);
-  padding: 0.9rem 1rem;
+  padding: 0.7rem 0.85rem;
   color: var(--text);
   transition: border-color var(--dur-fast) var(--ease-out), box-shadow var(--dur-fast) var(--ease-out);
 }
@@ -69,7 +69,7 @@ textarea:focus {
 }
 
 textarea {
-  min-height: 144px;
+  min-height: 120px;
   resize: vertical;
 }
 
@@ -79,7 +79,7 @@ a {
 
 .app-shell {
   min-height: 100vh;
-  padding: 16px;
+  padding: 14px;
 }
 
 .panel,
@@ -107,7 +107,8 @@ a {
 .primary-button,
 .ghost-button {
   border-radius: var(--radius-pill);
-  padding: 0.82rem 1.18rem;
+  padding: 0.65rem 1rem;
+  font-size: 0.92rem;
   transition:
     background-color var(--dur-fast) var(--ease-out),
     border-color var(--dur-fast) var(--ease-out),
@@ -182,7 +183,7 @@ a {
 .landing-copy,
 .landing-entry,
 .recent-panel {
-  padding: 1.6rem;
+  padding: 1.35rem 1.45rem;
 }
 
 .recent-panel {
@@ -191,9 +192,9 @@ a {
 
 .landing-copy h1,
 .workspace-topbar h1 {
-  margin: 0.4rem 0 0.6rem;
-  font-size: clamp(2rem, 4vw, 3.5rem);
-  line-height: 1.06;
+  margin: 0.3rem 0 0.45rem;
+  font-size: clamp(1.6rem, 2.2vw, 2.1rem);
+  line-height: 1.15;
 }
 
 .landing-features {
@@ -276,18 +277,18 @@ a {
 }
 
 .workbench-shell {
-  height: calc(100vh - 32px);
+  height: calc(100vh - 28px);
   display: grid;
-  grid-template-columns: 282px minmax(0, 1fr);
-  gap: 16px;
+  grid-template-columns: 240px minmax(0, 1fr);
+  gap: 12px;
 }
 
 .workspace-sidebar {
   min-height: 0;
-  padding: 18px;
+  padding: 14px;
   display: grid;
   grid-template-rows: auto auto auto 1fr auto;
-  gap: 16px;
+  gap: 12px;
 }
 
 .sidebar-brand {
@@ -318,14 +319,14 @@ a {
 
 .sidebar-context-card {
   border-radius: var(--radius-md);
-  padding: 1rem 1rem 1.1rem;
+  padding: 0.85rem 0.85rem 0.9rem;
   background: var(--surface-hover);
   border: 1px solid var(--border);
 }
 
 .sidebar-context-card h2 {
-  margin: 0.4rem 0 0.35rem;
-  font-size: 1.18rem;
+  margin: 0.3rem 0 0.3rem;
+  font-size: 1.02rem;
   line-height: 1.2;
 }
 
@@ -344,7 +345,7 @@ a {
   width: 100%;
   text-align: left;
   border-radius: var(--radius-md);
-  padding: 0.86rem 0.96rem;
+  padding: 0.7rem 0.85rem;
   background: var(--surface-hover);
   color: var(--text);
   border: 1px solid var(--border);
@@ -354,6 +355,7 @@ a {
   transition: background-color var(--dur-fast) var(--ease-out),
     border-color var(--dur-fast) var(--ease-out),
     color var(--dur-fast) var(--ease-out);
+  font-size: 0.92rem;
 }
 
 .sidebar-nav-item:hover,
@@ -383,14 +385,14 @@ a {
 
 .workspace-frame {
   min-height: 0;
-  padding: 14px;
+  padding: 12px;
   display: grid;
   grid-template-rows: auto 1fr;
-  gap: 14px;
+  gap: 12px;
 }
 
 .workspace-topbar {
-  padding: 1rem 1.15rem 0.5rem;
+  padding: 0.7rem 1rem 0.4rem;
   display: flex;
   justify-content: space-between;
   gap: 1rem;
@@ -427,24 +429,24 @@ a {
   min-height: 0;
   overflow: auto;
   display: grid;
-  gap: 14px;
-  padding: 0 0.25rem 0.25rem 0;
+  gap: 12px;
+  padding: 0 0.2rem 0.2rem 0;
 }
 
 .summary-ribbon {
-  padding: 0.9rem 1rem;
+  padding: 0.7rem 0.9rem;
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 0.85rem;
+  gap: 0.7rem;
 }
 
 .summary-ribbon-item {
   border-radius: var(--radius-md);
-  padding: 0.95rem 1rem;
+  padding: 0.75rem 0.9rem;
   background: var(--surface-hover);
   border: 1px solid var(--border);
   display: grid;
-  gap: 0.25rem;
+  gap: 0.2rem;
 }
 
 .summary-ribbon-item span {
@@ -452,12 +454,12 @@ a {
 }
 
 .summary-ribbon-item strong {
-  font-size: 1.4rem;
+  font-size: 1.25rem;
   color: var(--text);
 }
 
 .quick-create-strip {
-  padding: 1rem 1.15rem;
+  padding: 0.8rem 1rem;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -477,15 +479,15 @@ a {
 
 .overview-card-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-  gap: 14px;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 12px;
 }
 
 .overview-item-card {
-  padding: 12px;
+  padding: 10px;
   display: grid;
-  gap: 12px;
-  grid-template-rows: 160px auto;
+  gap: 10px;
+  grid-template-rows: 140px auto;
   transition: background-color var(--dur-fast) var(--ease-out),
     border-color var(--dur-fast) var(--ease-out);
 }
@@ -504,7 +506,7 @@ a {
   border-radius: var(--radius-md);
   overflow: hidden;
   background: var(--surface-hover);
-  min-height: 160px;
+  min-height: 140px;
   display: grid;
   place-items: center;
   border: 1px solid var(--divider);
@@ -513,7 +515,7 @@ a {
 
 .overview-card-visual img {
   width: 100%;
-  height: 160px;
+  height: 140px;
   object-fit: cover;
 }
 
@@ -621,7 +623,7 @@ a {
 }
 
 .editor-workbench {
-  grid-template-columns: 300px minmax(0, 1fr);
+  grid-template-columns: 260px minmax(0, 1fr);
 }
 
 .version-rail {
@@ -641,8 +643,8 @@ a {
 .editor-stage-grid {
   min-height: 0;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 360px;
-  gap: 14px;
+  grid-template-columns: minmax(0, 1fr) 340px;
+  gap: 12px;
 }
 
 .editor-canvas-column,
@@ -652,7 +654,7 @@ a {
 }
 
 .editor-canvas-panel {
-  padding: 1rem;
+  padding: 0.85rem;
   display: grid;
 }
 
@@ -717,18 +719,18 @@ a {
   height: 100%;
   overflow: auto;
   display: grid;
-  gap: 18px;
-  padding: 1.1rem;
+  gap: 14px;
+  padding: 0.9rem;
 }
 
 .inspector-section {
   display: grid;
-  gap: 0.8rem;
+  gap: 0.65rem;
 }
 
 .inspector-section h2 {
-  margin: 0.18rem 0 0;
-  font-size: 1.18rem;
+  margin: 0.1rem 0 0;
+  font-size: 1.05rem;
   color: var(--text);
 }
 
@@ -866,10 +868,10 @@ a {
 
 .utility-drawer {
   position: fixed;
-  top: 16px;
+  top: 14px;
   right: -430px;
   width: 400px;
-  height: calc(100vh - 32px);
+  height: calc(100vh - 28px);
   transition: right var(--dur-base) var(--ease-out);
   z-index: 40;
   display: grid;
@@ -877,33 +879,35 @@ a {
 }
 
 .utility-drawer.open {
-  right: 16px;
+  right: 14px;
 }
 
 .utility-drawer-header {
-  padding: 1.15rem 1.15rem 0.8rem;
+  padding: 0.95rem 1rem 0.65rem;
 }
 
 .utility-drawer-header h3 {
-  margin: 0.24rem 0 0;
+  margin: 0.2rem 0 0;
   color: var(--text);
+  font-size: 1.05rem;
 }
 
 .utility-tab-strip,
 .utility-segmented {
   display: flex;
-  gap: 0.5rem;
-  padding: 0 1.15rem 0.7rem;
+  gap: 0.4rem;
+  padding: 0 1rem 0.6rem;
 }
 
 .utility-tab-strip button,
 .utility-segmented button {
   flex: 1;
   border-radius: var(--radius-pill);
-  padding: 0.72rem 0.82rem;
+  padding: 0.55rem 0.7rem;
   background: var(--surface-hover);
   color: var(--text-muted);
   border: 1px solid var(--border);
+  font-size: 0.88rem;
   transition: background-color var(--dur-fast) var(--ease-out),
     color var(--dur-fast) var(--ease-out),
     border-color var(--dur-fast) var(--ease-out);
@@ -926,15 +930,16 @@ a {
   min-height: 0;
   overflow: auto;
   display: grid;
-  gap: 0.8rem;
-  padding: 0 1.15rem 1.15rem;
+  gap: 0.65rem;
+  padding: 0 1rem 1rem;
 }
 
 .utility-card {
   border-radius: var(--radius-md);
-  padding: 0.95rem 1rem;
+  padding: 0.75rem 0.85rem;
   background: var(--surface-hover);
   border: 1px solid var(--border);
+  font-size: 0.92rem;
 }
 
 .utility-card-button {
@@ -1189,7 +1194,7 @@ a {
   .editor-workbench {
     grid-template-columns: 1fr;
     height: auto;
-    min-height: calc(100vh - 32px);
+    min-height: calc(100vh - 28px);
   }
 
   .workspace-sidebar {
