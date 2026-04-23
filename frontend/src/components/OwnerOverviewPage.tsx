@@ -179,6 +179,9 @@ export function OwnerOverviewPage() {
           <button className="sidebar-tool-button" onClick={() => openUtilityDrawer('recycle')}>
             回收站
           </button>
+          <button className="sidebar-tool-button" onClick={() => openUtilityDrawer('templates')}>
+            模板
+          </button>
         </div>
       </aside>
 

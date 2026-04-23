@@ -2,9 +2,22 @@ import { useEffect, useMemo, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 
-import { getRecycleBin, listEvents, listJobs, restoreImageItem, restoreVersion } from '../lib/api'
+import {
+  createPromptPreset,
+  deletePromptPreset,
+  getRecycleBin,
+  listEvents,
+  listJobs,
+  listPromptPresets,
+  restoreImageItem,
+  restoreVersion,
+  updatePromptPreset,
+} from '../lib/api'
 import { useUiStore } from '../store/uiStore'
-import type { EventLog, Job } from '../types/api'
+import type { EventLog, Job, PromptPreset } from '../types/api'
+import { useInputDialog } from './InputDialog'
+import { usePresetFormDialog } from './PresetFormDialog'
+import { PresetCard } from './PresetCard'
 
 function getTaskLabel(job: Job) {
   return job.job_type === 'generate' ? 'AI 生图' : 'AI 改图'
@@ -54,10 +67,15 @@ export function UtilityDrawer() {
   const setUtilityTab = useUiStore((state) => state.setUtilityTab)
   const closeUtilityDrawer = useUiStore((state) => state.closeUtilityDrawer)
   const currentOwnerId = useUiStore((state) => state.currentOwnerId)
+  const currentImageItemId = useUiStore((state) => state.currentImageItemId)
+  const editorPromptText = useUiStore((state) => state.editorPromptText)
+  const setEditorPromptText = useUiStore((state) => state.setEditorPromptText)
   const taskScope = useUiStore((state) => state.taskScope)
   const setTaskScope = useUiStore((state) => state.setTaskScope)
   const pushNotice = useUiStore((state) => state.pushNotice)
   const setJobIndicatorCount = useUiStore((state) => state.setJobIndicatorCount)
+  const inputDialog = useInputDialog()
+  const presetFormDialog = usePresetFormDialog()
   const previousStatuses = useRef(new Map<string, string>())
 
   const jobsQuery = useQuery({
@@ -79,6 +97,12 @@ export function UtilityDrawer() {
     queryKey: ['owner-recycle', currentOwnerId],
     queryFn: () => getRecycleBin(currentOwnerId ?? ''),
     enabled: open && activeTab === 'recycle' && Boolean(currentOwnerId),
+  })
+
+  const presetsQuery = useQuery({
+    queryKey: ['prompt-presets'],
+    queryFn: () => listPromptPresets('all'),
+    enabled: open && activeTab === 'templates',
   })
 
   useEffect(() => {
@@ -128,8 +152,97 @@ export function UtilityDrawer() {
   const drawerTitle = useMemo(() => {
     if (activeTab === 'events') return '事件流'
     if (activeTab === 'recycle') return '回收站'
+    if (activeTab === 'templates') return '提示词模板'
     return '任务中心'
   }, [activeTab])
+
+  const systemPresets = (presetsQuery.data ?? []).filter((preset) => preset.scope === 'system')
+  const personalPresets = (presetsQuery.data ?? []).filter((preset) => preset.scope === 'personal')
+  const inEditor = Boolean(currentImageItemId)
+
+  function applyPreset(preset: PromptPreset) {
+    if (!inEditor) {
+      pushNotice({ title: '请先打开一张图片项再载入模板' })
+      return
+    }
+    setEditorPromptText(preset.prompt_text)
+    pushNotice({ title: '已载入到编辑页提示词' })
+  }
+
+  async function saveCurrentPromptAsPreset(sourcePreset?: PromptPreset) {
+    if (!editorPromptText.trim()) {
+      pushNotice({ title: '编辑页还没有可保存的提示词' })
+      return
+    }
+    const result = await presetFormDialog.edit({
+      title: '保存为个人模板',
+      description: '个人模板会出现在「个人模板」分组里，方便复用。',
+      mode: 'create',
+      initial: {
+        name: sourcePreset ? `${sourcePreset.name} - 我的版本` : '我的快捷模板',
+        summary: sourcePreset?.summary ?? '个人常用模板',
+      },
+    })
+    if (!result) return
+    await createPromptPreset({
+      name: result.name,
+      summary: result.summary,
+      prompt_text: editorPromptText,
+      source_preset_id: sourcePreset?.id,
+      discipline: sourcePreset?.discipline ?? undefined,
+    })
+    pushNotice({ title: '已保存为个人模板' })
+    await queryClient.invalidateQueries({ queryKey: ['prompt-presets'] })
+  }
+
+  async function cloneSystemPreset(preset: PromptPreset) {
+    await createPromptPreset({
+      name: `${preset.name} - 我的版本`,
+      summary: preset.summary,
+      prompt_text: preset.prompt_text,
+      discipline: preset.discipline ?? undefined,
+      source_preset_id: preset.id,
+    })
+    pushNotice({ title: '系统模板已复制到个人模板' })
+    await queryClient.invalidateQueries({ queryKey: ['prompt-presets'] })
+  }
+
+  async function editPersonalPreset(preset: PromptPreset) {
+    const result = await presetFormDialog.edit({
+      title: '编辑个人模板',
+      mode: 'edit',
+      initial: {
+        name: preset.name,
+        summary: preset.summary,
+        prompt_text: preset.prompt_text,
+      },
+    })
+    if (!result) return
+    await updatePromptPreset(preset.id, {
+      name: result.name,
+      summary: result.summary,
+      prompt_text: result.prompt_text,
+      discipline: preset.discipline ?? undefined,
+    })
+    pushNotice({ title: '个人模板已更新' })
+    await queryClient.invalidateQueries({ queryKey: ['prompt-presets'] })
+  }
+
+  async function removePersonalPreset(preset: PromptPreset) {
+    const confirm = await inputDialog.prompt({
+      title: `删除模板「${preset.name}」`,
+      message: '删除后无法恢复。输入 删除 以确认。',
+      placeholder: '输入「删除」二字确认',
+      confirmLabel: '确认删除',
+    })
+    if (confirm !== '删除') {
+      pushNotice({ title: '已取消' })
+      return
+    }
+    await deletePromptPreset(preset.id)
+    pushNotice({ title: '个人模板已删除' })
+    await queryClient.invalidateQueries({ queryKey: ['prompt-presets'] })
+  }
 
   return (
     <aside className={`utility-drawer ${open ? 'open' : ''}`}>
@@ -160,6 +273,12 @@ export function UtilityDrawer() {
           onClick={() => setUtilityTab('recycle')}
         >
           回收站
+        </button>
+        <button
+          className={activeTab === 'templates' ? 'active' : ''}
+          onClick={() => setUtilityTab('templates')}
+        >
+          模板
         </button>
       </div>
 
@@ -269,6 +388,63 @@ export function UtilityDrawer() {
               </div>
             </>
           ) : null}
+        </div>
+      ) : null}
+
+      {activeTab === 'templates' ? (
+        <div className="utility-scroll">
+          {!inEditor ? (
+            <div className="empty-mini-card">
+              当前不在编辑页，载入按钮暂时不可用；你仍然可以浏览、编辑个人模板。
+            </div>
+          ) : null}
+
+          <div className="utility-section">
+            <div className="utility-section-heading">系统模板</div>
+            {presetsQuery.isLoading ? <p className="muted">正在加载模板…</p> : null}
+            {systemPresets.map((preset) => (
+              <PresetCard
+                key={preset.id}
+                preset={preset}
+                onApply={() => applyPreset(preset)}
+                applyDisabled={!inEditor}
+                applyDisabledHint="请先打开一张图片项"
+                onClone={() => void cloneSystemPreset(preset)}
+                onSaveCurrent={inEditor ? () => void saveCurrentPromptAsPreset(preset) : undefined}
+              />
+            ))}
+            {!systemPresets.length && !presetsQuery.isLoading ? (
+              <div className="empty-mini-card">系统模板为空。</div>
+            ) : null}
+          </div>
+
+          <div className="utility-section">
+            <div className="utility-section-heading">个人模板</div>
+            {inEditor ? (
+              <button
+                className="ghost-button small"
+                onClick={() => void saveCurrentPromptAsPreset()}
+                disabled={!editorPromptText.trim()}
+                title={!editorPromptText.trim() ? '编辑页还没有可保存的提示词' : undefined}
+              >
+                保存当前编辑页提示词为新模板
+              </button>
+            ) : null}
+            {personalPresets.map((preset) => (
+              <PresetCard
+                key={preset.id}
+                preset={preset}
+                onApply={() => applyPreset(preset)}
+                applyDisabled={!inEditor}
+                applyDisabledHint="请先打开一张图片项"
+                onEdit={() => void editPersonalPreset(preset)}
+                onDelete={() => void removePersonalPreset(preset)}
+              />
+            ))}
+            {!personalPresets.length && !presetsQuery.isLoading ? (
+              <div className="empty-mini-card">还没有个人模板。</div>
+            ) : null}
+          </div>
         </div>
       ) : null}
     </aside>

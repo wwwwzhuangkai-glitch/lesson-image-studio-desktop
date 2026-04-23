@@ -10,7 +10,7 @@ export type ThemeMode = 'light' | 'dark'
 export type ThemeVariant = 'graphite' | 'glass'
 
 type TaskScope = 'owner' | 'all'
-type UtilityTab = 'tasks' | 'events' | 'recycle'
+type UtilityTab = 'tasks' | 'events' | 'recycle' | 'templates'
 
 interface UiState {
   utilityDrawerOpen: boolean

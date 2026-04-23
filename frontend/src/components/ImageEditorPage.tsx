@@ -7,8 +7,6 @@ import {
   createEditJob,
   createGenerateJob,
   createMask,
-  createPromptPreset,
-  deletePromptPreset,
   deleteVersion,
   duplicateVersionToImageItem,
   exportVersion,
@@ -16,17 +14,14 @@ import {
   getImageItem,
   getVersionTree,
   importImage,
-  listPromptPresets,
   publishPlaceholder,
   unfinalizeVersion,
-  updatePromptPreset,
 } from '../lib/api'
 import { useUiStore } from '../store/uiStore'
-import type { PromptPreset, Version } from '../types/api'
+import type { Version } from '../types/api'
 import { AppTopbar } from './AppTopbar'
 import { CanvasWorkbench } from './CanvasWorkbench'
 import { useInputDialog } from './InputDialog'
-import { usePresetFormDialog } from './PresetFormDialog'
 import { VersionTree } from './VersionTree'
 
 const QUALITY_OPTIONS = [
@@ -49,14 +44,13 @@ export function ImageEditorPage() {
   const promptText = useUiStore((state) => state.editorPromptText)
   const setPromptText = useUiStore((state) => state.setEditorPromptText)
   const clearEditorPromptText = useUiStore((state) => state.clearEditorPromptText)
+  const setUtilityTab = useUiStore((state) => state.setUtilityTab)
   const inputDialog = useInputDialog()
-  const presetFormDialog = usePresetFormDialog()
   const [quality, setQuality] = useState<'low' | 'medium' | 'high'>('medium')
   const [size, setSize] = useState<'1024x1024' | '1536x1024' | '1024x1536'>('1024x1024')
   const [selectedVersionId, setSelectedVersionId] = useState<string | null>(null)
   const [selectionRect, setSelectionRect] = useState<{ x: number; y: number; width: number; height: number } | null>(null)
   const [selectionEnabled, setSelectionEnabled] = useState(false)
-  const [templatesExpanded, setTemplatesExpanded] = useState(false)
 
   const detailQuery = useQuery({
     queryKey: ['image-item', itemId],
@@ -70,11 +64,6 @@ export function ImageEditorPage() {
     queryFn: () => getVersionTree(itemId),
     enabled: Boolean(itemId),
     refetchInterval: 3000,
-  })
-
-  const presetsQuery = useQuery({
-    queryKey: ['prompt-presets'],
-    queryFn: () => listPromptPresets('all'),
   })
 
   useEffect(() => {
@@ -119,8 +108,6 @@ export function ImageEditorPage() {
 
   const currentFinalVersion = detailQuery.data?.current_final_version ?? null
   const hasVersions = Boolean(detailQuery.data?.versions.length)
-  const systemPresets = (presetsQuery.data ?? []).filter((preset) => preset.scope === 'system')
-  const personalPresets = (presetsQuery.data ?? []).filter((preset) => preset.scope === 'personal')
 
   const invalidate = async () => {
     await queryClient.invalidateQueries({ queryKey: ['image-item', itemId] })
@@ -197,69 +184,9 @@ export function ImageEditorPage() {
     }
   }
 
-  async function saveCurrentPromptAsPreset(sourcePreset?: PromptPreset) {
-    if (!promptText.trim()) {
-      pushNotice({ title: '没有可保存的提示词' })
-      return
-    }
-    const result = await presetFormDialog.edit({
-      title: '保存为个人模板',
-      description: '个人模板会出现在提示词区的"个人模板"分组里，方便复用。',
-      mode: 'create',
-      initial: {
-        name: sourcePreset ? `${sourcePreset.name} - 我的版本` : '我的快捷模板',
-        summary: sourcePreset?.summary ?? '个人常用模板',
-      },
-    })
-    if (!result) return
-    await createPromptPreset({
-      name: result.name,
-      summary: result.summary,
-      prompt_text: promptText,
-      source_preset_id: sourcePreset?.id,
-      discipline: sourcePreset?.discipline ?? undefined,
-    })
-    pushNotice({ title: '已保存为个人模板' })
-    await queryClient.invalidateQueries({ queryKey: ['prompt-presets'] })
-  }
-
-  async function cloneSystemPreset(preset: PromptPreset) {
-    await createPromptPreset({
-      name: `${preset.name} - 我的版本`,
-      summary: preset.summary,
-      prompt_text: preset.prompt_text,
-      discipline: preset.discipline ?? undefined,
-      source_preset_id: preset.id,
-    })
-    pushNotice({ title: '系统模板已复制到个人模板' })
-    await queryClient.invalidateQueries({ queryKey: ['prompt-presets'] })
-  }
-
-  async function editPersonalPreset(preset: PromptPreset) {
-    const result = await presetFormDialog.edit({
-      title: '编辑个人模板',
-      mode: 'edit',
-      initial: {
-        name: preset.name,
-        summary: preset.summary,
-        prompt_text: preset.prompt_text,
-      },
-    })
-    if (!result) return
-    await updatePromptPreset(preset.id, {
-      name: result.name,
-      summary: result.summary,
-      prompt_text: result.prompt_text,
-      discipline: preset.discipline ?? undefined,
-    })
-    pushNotice({ title: '个人模板已更新' })
-    await queryClient.invalidateQueries({ queryKey: ['prompt-presets'] })
-  }
-
-  async function removePersonalPreset(preset: PromptPreset) {
-    await deletePromptPreset(preset.id)
-    pushNotice({ title: '个人模板已删除' })
-    await queryClient.invalidateQueries({ queryKey: ['prompt-presets'] })
+  function openTemplatesDrawer() {
+    setUtilityTab('templates')
+    openUtilityDrawer('templates')
   }
 
   async function handleFinalize() {
@@ -349,6 +276,9 @@ export function ImageEditorPage() {
           </button>
           <button className="sidebar-tool-button" onClick={() => openUtilityDrawer('recycle')}>
             回收站
+          </button>
+          <button className="sidebar-tool-button" onClick={() => openUtilityDrawer('templates')}>
+            模板
           </button>
         </div>
       </aside>
@@ -470,8 +400,8 @@ export function ImageEditorPage() {
                       </button>
                     </>
                   )}
-                  <button className="ghost-button" onClick={() => void saveCurrentPromptAsPreset()}>
-                    保存为个人模板
+                  <button className="ghost-button" onClick={openTemplatesDrawer}>
+                    打开模板抽屉
                   </button>
                 </div>
               </section>
@@ -533,45 +463,6 @@ export function ImageEditorPage() {
                 </div>
               </section>
 
-              <section className="inspector-section template-section">
-                <button
-                  className="template-toggle"
-                  onClick={() => setTemplatesExpanded((value) => !value)}
-                >
-                  <span>模板库</span>
-                  <span>{templatesExpanded ? '收起' : '展开'}</span>
-                </button>
-
-                {templatesExpanded ? (
-                  <div className="template-stack">
-                    <div className="preset-group">
-                      <div className="preset-group-heading">系统模板</div>
-                      {systemPresets.map((preset) => (
-                        <PresetCard
-                          key={preset.id}
-                          preset={preset}
-                          onApply={() => setPromptText(preset.prompt_text)}
-                          onClone={() => void cloneSystemPreset(preset)}
-                          onSaveCurrent={() => void saveCurrentPromptAsPreset(preset)}
-                        />
-                      ))}
-                    </div>
-
-                    <div className="preset-group">
-                      <div className="preset-group-heading">个人模板</div>
-                      {personalPresets.map((preset) => (
-                        <PresetCard
-                          key={preset.id}
-                          preset={preset}
-                          onApply={() => setPromptText(preset.prompt_text)}
-                          onEdit={() => void editPersonalPreset(preset)}
-                          onDelete={() => void removePersonalPreset(preset)}
-                        />
-                      ))}
-                    </div>
-                  </div>
-                ) : null}
-              </section>
             </div>
           </aside>
         </div>
@@ -580,62 +471,3 @@ export function ImageEditorPage() {
   )
 }
 
-function PresetCard({
-  preset,
-  onApply,
-  onClone,
-  onEdit,
-  onDelete,
-  onSaveCurrent,
-}: {
-  preset: PromptPreset
-  onApply: () => void
-  onClone?: () => void
-  onEdit?: () => void
-  onDelete?: () => void
-  onSaveCurrent?: () => void
-}) {
-  const [expanded, setExpanded] = useState(false)
-
-  return (
-    <article className="preset-card">
-      <div className="preset-card-top">
-        <div>
-          <strong>{preset.name}</strong>
-          <p>{preset.summary}</p>
-        </div>
-        <button className="ghost-button small" onClick={() => setExpanded((value) => !value)}>
-          {expanded ? '收起' : '展开'}
-        </button>
-      </div>
-
-      {expanded ? <pre className="preset-prompt">{preset.prompt_text}</pre> : null}
-
-      <div className="button-row">
-        <button className="ghost-button small" onClick={onApply}>
-          载入
-        </button>
-        {onClone ? (
-          <button className="ghost-button small" onClick={onClone}>
-            复制到个人模板
-          </button>
-        ) : null}
-        {onSaveCurrent ? (
-          <button className="ghost-button small" onClick={onSaveCurrent}>
-            保存当前提示词
-          </button>
-        ) : null}
-        {onEdit ? (
-          <button className="ghost-button small" onClick={onEdit}>
-            编辑
-          </button>
-        ) : null}
-        {onDelete ? (
-          <button className="ghost-button small danger" onClick={onDelete}>
-            删除
-          </button>
-        ) : null}
-      </div>
-    </article>
-  )
-}

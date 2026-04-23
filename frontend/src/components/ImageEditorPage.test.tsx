@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { fireEvent, render, screen } from '@testing-library/react'
+import { render, screen } from '@testing-library/react'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { expect, it, vi } from 'vitest'
 
@@ -174,15 +174,17 @@ vi.mock('./CanvasWorkbench', () => ({
   CanvasWorkbench: () => <div>CanvasWorkbench Stub</div>,
 }))
 
-it('renders the three-column editor shell and keeps templates collapsed by default', async () => {
+it('renders the three-column editor shell without embedding the template library', async () => {
   const queryClient = new QueryClient()
   useUiStore.setState({
     utilityDrawerOpen: false,
     utilityTab: 'tasks',
     taskScope: 'owner',
     currentOwnerId: null,
+    currentImageItemId: null,
     notices: [],
     jobIndicatorCount: 0,
+    editorPromptText: '',
   })
 
   render(
@@ -198,8 +200,9 @@ it('renders the three-column editor shell and keeps templates collapsed by defau
   expect(await screen.findByText('受力分析图')).toBeInTheDocument()
   expect(screen.getByText('版本轨')).toBeInTheDocument()
   expect(screen.getByText('CanvasWorkbench Stub')).toBeInTheDocument()
+  // Templates live in UtilityDrawer now; they must not be embedded in the editor.
   expect(screen.queryByText('高中物理模板')).not.toBeInTheDocument()
-
-  fireEvent.click(screen.getByRole('button', { name: '模板库展开' }))
-  expect(await screen.findByText('高中物理模板')).toBeInTheDocument()
+  expect(screen.queryByRole('button', { name: /模板库/ })).not.toBeInTheDocument()
+  // An explicit "open templates drawer" entry replaces the old embedded list.
+  expect(screen.getByRole('button', { name: '打开模板抽屉' })).toBeInTheDocument()
 })
