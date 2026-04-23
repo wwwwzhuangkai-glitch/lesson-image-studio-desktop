@@ -66,3 +66,18 @@
 
 详细设置规格请看 `docs/SETTINGS_SPEC.md`。  
 不可动摇规则请看 `docs/DECISIONS.md`。
+
+## 7. 本轮已交付摘要（归档）
+
+本轮（2026-04-23）按此计划完成了以下内容：
+
+- 后端 `AppSettings` 单例模型 + alembic 迁移（含默认行）+ service 层 + 4 条 `/api/settings*` 路由
+- `JobRunner` 改读 `AppSettings`（`openai_api_key` / `openai_base_url` / `openai_model`），ENV 仅作为 key 回落
+- 跨图片项全局并发上限 `max_concurrent_jobs`（默认 2）
+- 前端 4 套主题 token 系统（`graphite-light / graphite-dark / glass-light / glass-dark`）
+- `index.css` 全量 token 化，`index.html` inline 脚本防首帧闪白
+- 新增 `SettingsPage`（密钥 / 外观 / 默认参数 三分区，不含质量 / 尺寸）
+- 顶栏全局 `AppTopbar`（明暗图标 + 设置齿轮），挂到 4 个页面
+- `InputDialog` + `PresetFormDialog` 取代所有 `window.prompt`（共 7 处）
+
+P2 / P3 backlog 请看 `docs/TODO.md`。

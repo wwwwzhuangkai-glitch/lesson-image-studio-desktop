@@ -12,3 +12,16 @@
 8. 前端报错直接显示后端 `detail`，不出现整段 JSON。
 9. 模板区默认折叠，展开后可查看全文；系统模板必须复制后再编辑。
 10. 左栏底部可以打开任务、事件、回收站，且不破坏主工作台布局。
+
+## 本轮（Settings + 主题系统）验收重点
+
+11. `GET /api/settings` 返回 `has_openai_api_key` 与非敏感字段，**不含** `openai_api_key` 或 `masked_openai_api_key`。
+12. `PUT /api/settings/openai-key` 写入密钥后，`GET /api/settings` 的 `has_openai_api_key` 变为 `true`；`DELETE /api/settings/openai-key` 后回到 `false`。
+13. `AppSettings.max_concurrent_jobs = 1` 时，跨图片项同时发起第 2 个 AI 任务会被拒绝，错误信息包含「并发上限」四字。
+14. AppSettings 中保存的 `openai_base_url` / `openai_model` 会被 `JobRunner` 读取并传给 OpenAI 客户端（设置即生效）。
+15. 无 AppSettings key 且无 ENV key 时，任务仍然 `failed` 且 `error_code = "missing_api_key"`，错误信息提示「请在设置页填入 Key」。
+16. 页面首次加载时 `<html data-theme="graphite-light">`（或 localStorage 中的上次值），无白屏闪烁。
+17. 点击顶栏月亮/太阳图标会同时：切换 `data-theme` 前缀、写入 localStorage、`PUT /api/settings { theme_mode }`。
+18. SettingsPage 外观分区切换 `variant` 会同步更新 4 套主题组合，所有 4 个页面的面板、按钮、描边都跟随变化。
+19. `grep -rn "window.prompt" frontend/src/` 返回 0 行；7 处原交互全部走 `InputDialog` 或 `PresetFormDialog`。
+20. 清空 API Key 必须通过 `InputDialog` 二次确认（键入「清空」二字），否则操作被取消。

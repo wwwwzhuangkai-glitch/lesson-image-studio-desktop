@@ -35,20 +35,40 @@
   - `backend/src/lesson_image_studio_backend/services/image_items.py`
 - 任务与 AI 调用：
   - `backend/src/lesson_image_studio_backend/services/jobs.py`
+- 本地设置 service：
+  - `backend/src/lesson_image_studio_backend/services/app_settings.py`
 - 前端总览页：
   - `frontend/src/components/OwnerOverviewPage.tsx`
 - 前端编辑页：
   - `frontend/src/components/ImageEditorPage.tsx`
+- 前端设置页：
+  - `frontend/src/components/SettingsPage.tsx`
+- 全局顶栏：
+  - `frontend/src/components/AppTopbar.tsx`
 - 统一工具抽屉：
   - `frontend/src/components/UtilityDrawer.tsx`
+- 输入 / 表单对话：
+  - `frontend/src/components/InputDialog.tsx`
+  - `frontend/src/components/PresetFormDialog.tsx`
+- 主题 Token 底座：
+  - `frontend/src/styles/theme.css`
+  - `frontend/src/hooks/useTheme.ts`
+  - `frontend/index.html`（inline 防闪白脚本）
 
 ## 4. 容易踩坑的点
 
 - `Settings` 有实例态和全局缓存态两套入口，接口里优先用 `request.app.state.settings`
+- **两个 Settings 不要混淆**：
+  - `config.py::Settings` 是环境变量级（ENV / `.env`）
+  - `models.py::AppSettings` 是产品级（SQLite 单例行，SettingsPage 修改）
+  - `JobRunner._load_openai_runtime` 做二者的合并：AppSettings 优先，ENV 回落
 - 不要把 `VersionTree` 误改成跨图片项树
 - `duplicate-to-image-item` 不是“建立跨树父子关系”，而是“复制出新的根版本”
 - `OPENAI_API_KEY` 缺失时不要生成假图
 - 前端错误提示要直接显示后端 `detail`
+- `AppSettings` 接口**绝不**回传 `openai_api_key` / `masked_openai_api_key` 任何字符
+- 前端主题切换必须三件套同步：Zustand store + localStorage + `PUT /api/settings`；少一件都会在重载后露馅
+- `CanvasWorkbench` 用 `getComputedStyle(document.documentElement).getPropertyValue('--accent')` 读 token；React 组件 `useMemo` 依赖 `themeMode / themeVariant` 触发重算
 
 ## 5. 推荐接力方式
 
@@ -66,11 +86,12 @@
 
 ## 6. 适合下一轮继续做的主题
 
-- 正式新增 `SettingsPage`
-- 主题系统：`light / dark`
-- 总览页与编辑页的现代化 UI 重构
 - 路由级代码拆分，减小前端 chunk
-- 更完整的前端测试覆盖
+- 更完整的前端测试覆盖（useTheme / Dialog / SettingsPage 交互 / 并发上限前端分支）
+- OwnerOverviewPage 与 ImageEditorPage 在新 token 下进一步打磨视觉层级
+- 代码债：`CanvasWorkbench.tsx` 的 2 处 `any`、`uiStore.ts` 的 ID 生成、轮询频率
+- 图片项排序升级为拖拽（见 TODO.md P3）
+- 如果 OpenAI 真实生成超时频发，再增加 `openai_request_timeout_ms` 字段
 
 ## 7. 当前 vs 未来
 

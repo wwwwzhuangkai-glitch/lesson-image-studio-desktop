@@ -46,3 +46,26 @@
 - 设置页新增
 
 这些都可以大胆重做，但前提是不破坏本文件前 4 节的硬规则。
+
+## 6. 主题系统（本轮锁定）
+
+- 两套 variant：`graphite`（默认，石板冷静）+ `glass`（浅雾玻璃，第一版延续）
+- 两套 mode：`light`（默认）+ `dark`
+- 合计 4 套 `data-theme`：`graphite-light` / `graphite-dark` / `glass-light` / `glass-dark`
+- 切换入口只有两个：顶栏的明暗图标（只切 mode）+ SettingsPage 的外观分区（可切 variant 与 mode）
+- 明暗态的写入必须同时落到 Zustand、localStorage、`PUT /api/settings`，不能只改其中一处
+- 任何新页面、新组件必须先走 token，不允许再引入硬编码色值
+
+## 7. 设置体系（本轮锁定）
+
+- `AppSettings` 是**单例**：`id = 'singleton'` + `CheckConstraint` 兜底
+- 首次 `alembic upgrade` 即通过 `op.bulk_insert` 写入默认行，service 层永远 `db.get(AppSettings, "singleton")` 非空
+- API 永远不回传 `openai_api_key` 的任何字符，`has_openai_api_key: bool` 是唯一出口
+- 清空 Key 必须二次确认（当前实现是 `InputDialog` 键入「清空」）
+- 并发上限 `max_concurrent_jobs` 默认 `2`，上限范围 1–10
+
+## 8. 复用 vs 新增
+
+- 不引入 UI 库（shadcn / Tailwind / MUI），继续纯 CSS token
+- 前端依赖保持最小：不加 icon 库（SVG inline）、不加 dialog 库（imperative Root 组件）
+- 数据模型任何新增必须单独写一条 DECISION，不可静默加字段
