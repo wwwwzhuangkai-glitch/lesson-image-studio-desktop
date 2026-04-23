@@ -69,3 +69,20 @@
 - 不引入 UI 库（shadcn / Tailwind / MUI），继续纯 CSS token
 - 前端依赖保持最小：不加 icon 库（SVG inline）、不加 dialog 库（imperative Root 组件）
 - 数据模型任何新增必须单独写一条 DECISION，不可静默加字段
+
+## 9. 模板与编辑器 prompt state（本轮锁定）
+
+- 模板（PresetCard）的**唯一展示位置**是 UtilityDrawer 的 "templates" tab
+- 编辑页检视器里不再嵌入模板库；如果未来要在编辑页加"快速载入模板"入口，只能通过调用 `useUiStore` 的 `setUtilityTab('templates') + openUtilityDrawer('templates')`
+- 编辑页 prompt textarea 的 state 从 `useState` 迁到 `uiStore.editorPromptText`，因为 UtilityDrawer 的"载入"按钮需要跨组件写入
+- `uiStore.currentImageItemId` 由 `ImageEditorPage` 的 `useEffect` 维护（挂载写 itemId，卸载清空），UtilityDrawer 据此决定"载入"按钮是否可用
+
+## 10. OpenAI 配置回落（本轮锁定）
+
+- 三个字段**各自独立**回落到环境变量：
+  - `openai_api_key` ← `LESSON_IMAGE_STUDIO_OPENAI_API_KEY`
+  - `openai_base_url` ← `LESSON_IMAGE_STUDIO_OPENAI_BASE_URL`
+  - `openai_model` ← `LESSON_IMAGE_STUDIO_OPENAI_MODEL`
+- ENV 值**从不**被前端覆盖写回；AppSettings 与 ENV 是读侧合并，不是写侧同步
+- model 双层都空时直接 `ValueError`（不保留硬编码 `"gpt-image-2"` 兜底）
+- `has_openai_api_key` 口径统一为"任一层有值"，并新增 `openai_api_key_source` 字段告诉前端真实来源

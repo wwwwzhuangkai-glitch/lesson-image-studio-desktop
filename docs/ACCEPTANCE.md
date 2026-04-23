@@ -25,3 +25,14 @@
 18. SettingsPage 外观分区切换 `variant` 会同步更新 4 套主题组合，所有 4 个页面的面板、按钮、描边都跟随变化。
 19. `grep -rn "window.prompt" frontend/src/` 返回 0 行；7 处原交互全部走 `InputDialog` 或 `PresetFormDialog`。
 20. 清空 API Key 必须通过 `InputDialog` 二次确认（键入「清空」二字），否则操作被取消。
+
+## 第二轮（紧凑化 + 模板搬家 + 选 A 遗留）验收重点
+
+21. 把 `default_export_format` 切到 `jpeg` 后，导出文件的 storage_key 以 `.jpg` 结尾，文件头字节是 `FF D8 FF`（JPEG magic）。
+22. `.env` 里填 `LESSON_IMAGE_STUDIO_OPENAI_BASE_URL`（AppSettings 留空），发起改图时 OpenAI 客户端走 ENV 指定的 URL；AppSettings 再填一个值后 ENV 被覆盖。
+23. `.env` 有 key、AppSettings 无 key → SettingsPage 显示 `● 已配置 · 来自环境变量`，且**不显示**清空密钥按钮。
+24. 模板从 UtilityDrawer 能浏览；编辑页打开时"载入"按钮可用，点击后 preset.prompt_text 填进编辑页 textarea + 弹"已载入"通知。
+25. 离开编辑页到总览（`currentImageItemId` 为 null）→ UtilityDrawer templates tab 里的"载入"按钮变灰并带 title 提示。
+26. 前端 `grep -rn "template-section" frontend/src/components/ImageEditorPage.tsx` 返回 0；模板区不再嵌在检视器内。
+27. `GET /api/settings` 返回字段包括 `openai_api_key_source`；值为 `app_settings` / `env` / `none` 三选一。
+28. Pulsar 对齐视觉复测：左栏宽度 240px、编辑页版本轨 260px、h1 字号 ~25–34px、Glass 模式面板圆角 20px。

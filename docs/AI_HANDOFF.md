@@ -50,6 +50,8 @@
 - 输入 / 表单对话：
   - `frontend/src/components/InputDialog.tsx`
   - `frontend/src/components/PresetFormDialog.tsx`
+- 模板卡片组件（UtilityDrawer 模板 tab 与未来入口复用）：
+  - `frontend/src/components/PresetCard.tsx`
 - 主题 Token 底座：
   - `frontend/src/styles/theme.css`
   - `frontend/src/hooks/useTheme.ts`
@@ -69,6 +71,9 @@
 - `AppSettings` 接口**绝不**回传 `openai_api_key` / `masked_openai_api_key` 任何字符
 - 前端主题切换必须三件套同步：Zustand store + localStorage + `PUT /api/settings`；少一件都会在重载后露馅
 - `CanvasWorkbench` 用 `getComputedStyle(document.documentElement).getPropertyValue('--accent')` 读 token；React 组件 `useMemo` 依赖 `themeMode / themeVariant` 触发重算
+- **模板搬家后**：编辑页的 prompt textarea state 从 `useState` 迁到 `uiStore.editorPromptText`；`currentImageItemId` 也在 uiStore 由 ImageEditorPage 的 effect 维护。UtilityDrawer 的模板 tab 会读这两个 state 决定"载入"按钮的启用与行为
+- OpenAI 配置三字段（key / base_url / model）**各自独立**走 AppSettings → ENV 回落。model 双层都空会 `ValueError`，不再有硬编码 `gpt-image-2` 的 fallback
+- `has_openai_api_key` 返回值综合考虑 AppSettings 和 ENV 两层；想知道 key 到底从哪里来，读 `openai_api_key_source` 字段（`app_settings` / `env` / `none`）
 
 ## 5. 推荐接力方式
 

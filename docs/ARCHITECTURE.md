@@ -149,8 +149,9 @@
 次级面板与对话：
 
 - `UtilityDrawer`
-  - 统一承载任务、事件、回收站
-  - 默认从左栏底部入口打开
+  - 统一承载任务、事件、回收站、**模板**四个 tab
+  - 默认从左栏底部入口打开（"任务中心 / 事件流 / 回收站 / 模板"）
+  - 模板 tab 的"载入"会把选中 preset 的 prompt_text 写入 `uiStore.editorPromptText`；不在编辑页时按钮 disabled
 - `InputDialog` / `PresetFormDialog`
   - 由 `AppShell` 单次挂载，替换了之前所有的 `window.prompt`
   - 支持 Enter 确认、Esc / 背景点击取消
@@ -181,7 +182,9 @@
    - `LESSON_IMAGE_STUDIO_DATABASE_URL` / `LESSON_IMAGE_STUDIO_DATA_DIR`
 
 `services/jobs.py::JobRunner._load_openai_runtime` 是两层配置的汇合点：
-它读取 AppSettings，然后用 ENV 作为 key 的回落，再把 `(api_key, base_url, model)` 传给 OpenAI 客户端。
+读取 AppSettings → 为空则回落到对应的环境变量字段（`openai_api_key` / `openai_base_url` / `openai_model` 三者各自独立回落）→ 再把 `(api_key, base_url, model)` 传给 OpenAI 客户端。model 在两层都空时直接 `ValueError`，不再使用硬编码默认值。
+
+`POST /api/versions/{id}/export` 读 `AppSettings.default_export_format`（png/jpeg/webp），通过 `StorageService.export_copy` 用 Pillow 转码；PNG 走字节直拷，JPEG 先 `convert("RGB")` 展平 alpha，WEBP 直接重新编码。
 
 ## 8. 当前已知非阻塞项
 

@@ -66,7 +66,8 @@
 
 返回：
 
-- `has_openai_api_key`（bool，计算字段）
+- `has_openai_api_key`（bool，综合看 AppSettings 行和环境变量）
+- `openai_api_key_source`（`"app_settings"` / `"env"` / `"none"` — 运行时实际会拿的 key 来自哪里）
 - `openai_base_url`
 - `openai_model`
 - `default_export_format`
@@ -75,7 +76,7 @@
 - `max_concurrent_jobs`
 - `updated_at`
 
-**不回传 `openai_api_key` / `masked_openai_api_key`**。
+**不回传 `openai_api_key` / `masked_openai_api_key`**。前端仅能根据 `openai_api_key_source` 得知 key 的来源口径，不能拿到任何 key 字符。
 
 ### `PUT /api/settings`
 
@@ -106,20 +107,36 @@
 
 ## 7. 后端与 OpenAI 调用
 
-`services/jobs.py::JobRunner` 读取优先级：
+`services/jobs.py::JobRunner._load_openai_runtime` 的读取优先级（本轮明确）：
 
-1. `AppSettings.openai_api_key`
-2. `ENV.LESSON_IMAGE_STUDIO_OPENAI_API_KEY`（回落）
-
-若两者都空，任务 `failed` + `error_code = "missing_api_key"`（硬规则）。
-
-`openai_base_url` 空串表示使用 OpenAI 官方，否则传入 `OpenAI(base_url=...)`。
-
-`openai_model` 传入 `client.images.generate(model=...)` 与 `client.images.edit(model=...)`。
+| 字段 | 第 1 层 | 第 2 层（回落） | 都空 |
+|---|---|---|---|
+| `openai_api_key` | `AppSettings.openai_api_key` | `LESSON_IMAGE_STUDIO_OPENAI_API_KEY` | 任务 failed + `error_code="missing_api_key"` |
+| `openai_base_url` | `AppSettings.openai_base_url` | `LESSON_IMAGE_STUDIO_OPENAI_BASE_URL` | 走 OpenAI 官方 endpoint |
+| `openai_model` | `AppSettings.openai_model` | `LESSON_IMAGE_STUDIO_OPENAI_MODEL` | `ValueError`（任务 failed，提示去设置页填） |
 
 `max_concurrent_jobs` 在 `create_edit_job / create_generate_job` 的入口用 `_ensure_global_concurrency` 校验。
 
-## 8. 非目标
+### 默认导出格式落地
+
+`POST /api/versions/{id}/export` 会读取 `AppSettings.default_export_format`，由 `StorageService.export_copy` 用 Pillow 转码到对应格式（PNG 走字节直拷、JPEG 先 `convert("RGB")` 展平透明度、WEBP 直接编码）。事件流的 `version_exported` payload 同时记录 `export_format`。
+
+## 8. 环境变量一览
+
+`.env` 可以预设以下字段（都作为 AppSettings 的回落）：
+
+```bash
+LESSON_IMAGE_STUDIO_OPENAI_API_KEY=sk-xxx
+LESSON_IMAGE_STUDIO_OPENAI_BASE_URL=https://your-proxy/v1
+LESSON_IMAGE_STUDIO_OPENAI_MODEL=gpt-image-2
+LESSON_IMAGE_STUDIO_RECENT_OWNER_LIMIT=5
+LESSON_IMAGE_STUDIO_DATABASE_URL=sqlite:///...
+LESSON_IMAGE_STUDIO_DATA_DIR=/path/to/data
+```
+
+`.env` **不会**被前端写回。任何 UI 改动只写到 AppSettings 表。
+
+## 9. 非目标
 
 这一阶段不做：
 

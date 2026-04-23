@@ -41,17 +41,21 @@ uv run uvicorn lesson_image_studio_backend.main:app --reload
 
 默认地址：`http://127.0.0.1:8000`
 
-可选环境变量：
+可选环境变量（都作为 AppSettings 的回落，AppSettings 里有值时优先级更高）：
 
 ```bash
 export LESSON_IMAGE_STUDIO_OPENAI_API_KEY=your_key_here
+export LESSON_IMAGE_STUDIO_OPENAI_BASE_URL=https://your-proxy/v1   # 可选：自建代理或 OpenAI 兼容端点
+export LESSON_IMAGE_STUDIO_OPENAI_MODEL=gpt-image-2                # 可选：切换生图模型
 ```
 
-如果没有配置 Key：
+如果 key 在 AppSettings 和 ENV 里都没有配置：
 
 - 允许创建 AI 任务
 - 任务会进入失败态
-- 错误信息会明确提示未配置 `OPENAI_API_KEY`
+- 错误信息会明确提示未配置 Key
+
+`SettingsPage` 会显示 key 的真实来源（本地 / 来自环境变量 / 未配置）。
 
 ### 2. 启动前端
 
