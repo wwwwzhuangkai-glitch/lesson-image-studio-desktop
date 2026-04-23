@@ -1,8 +1,19 @@
 # Architecture
 
-## 1. 当前真实结构
+## 1. 文档边界
 
-`lesson-image-studio` 是一个本地浏览器工作台，采用前后端分离：
+这份文档只描述当前已经存在的真实实现。
+
+它不会把下一阶段计划中的 `SettingsPage`、主题系统或新的设置接口写成“已完成”。  
+未来规划请看：
+
+- `docs/NEXT_PHASE_PLAN.md`
+- `docs/SETTINGS_SPEC.md`
+- `docs/DECISIONS.md`
+
+## 2. 当前真实结构
+
+`lesson-image-studio` 当前是一个本地浏览器工作台，采用前后端分离：
 
 - `frontend/`
   - `React + Vite + TypeScript`
@@ -19,7 +30,7 @@
   - `files/exports`
   - `files/masks`
 
-## 2. 领域模型
+## 3. 当前领域模型
 
 核心链路固定为 `Owner -> ImageItem -> ImageVersion`。
 
@@ -48,7 +59,7 @@
 - `PromptPreset`
   - 系统模板 + 个人模板
 
-## 3. 关键不变量
+## 4. 当前硬约束
 
 这些约束是当前实现最重要的“别破坏”规则：
 
@@ -63,9 +74,9 @@
 - 图片项在存在当前定稿时不能删除
 - 无 `OPENAI_API_KEY` 时允许建任务，但任务必须失败且不生成假图
 
-## 4. API 主链路
+更高层的不可动摇规则请看 `docs/DECISIONS.md`。
 
-当前主链路如下：
+## 5. 当前 API 主链路
 
 - 打开 Owner
   - `POST /api/owners/open`
@@ -101,9 +112,9 @@
   - `PATCH /api/prompt-presets/{presetId}`
   - `DELETE /api/prompt-presets/{presetId}`
 
-## 5. 前端工作台骨架
+## 6. 当前前端页面结构
 
-当前 UI 已经不是长网页，而是固定工作台：
+当前只有 3 个正式页面：
 
 - `OwnerEntryPage`
   - 左侧入口说明
@@ -119,11 +130,14 @@
   - 中间主画布
   - 右侧固定检视器
   - 模板区默认折叠
+
+次级面板：
+
 - `UtilityDrawer`
   - 统一承载任务、事件、回收站
   - 默认从左栏底部入口打开
 
-## 6. 配置与运行
+## 7. 当前配置与运行
 
 - `LESSON_IMAGE_STUDIO_RECENT_OWNER_LIMIT`
   - 默认 `5`
@@ -132,7 +146,7 @@
   - 有值时走真实 `gpt-image-2`
   - 无值时任务失败但链路可观测
 
-## 7. 当前已知非阻塞项
+## 8. 当前已知非阻塞项
 
 - 前端生产构建仍有大 chunk 警告，当前不是功能阻塞
 - 移动端只保证基本可访问，不追求完整工作台体验

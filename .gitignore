@@ -8,6 +8,11 @@ backend/**/__pycache__/
 # Node
 frontend/node_modules/
 frontend/dist/
+/package-lock.json
+
+# Local reference images
+/*.jpg
+/*.JPG
 
 # Runtime data
 data/*

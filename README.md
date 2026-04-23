@@ -86,3 +86,6 @@ npm run build
 - [UI_WORKBENCH.md](docs/UI_WORKBENCH.md)
 - [AI_HANDOFF.md](docs/AI_HANDOFF.md)
 - [TODO.md](docs/TODO.md)
+- [DECISIONS.md](docs/DECISIONS.md)
+- [NEXT_PHASE_PLAN.md](docs/NEXT_PHASE_PLAN.md)
+- [SETTINGS_SPEC.md](docs/SETTINGS_SPEC.md)

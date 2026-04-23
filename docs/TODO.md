@@ -2,19 +2,26 @@
 
 ## P1
 
-- 给前端做路由级拆包，解决当前 `build` 的大 chunk 警告
-- 补 `OwnerOverviewPage` 的关键交互测试：卡片矩阵、复制起点、utility drawer 入口
-- 补 `ImageEditorPage` 的关键交互测试：模板折叠、复制起点、定稿/导出按钮
+- 新增正式 `SettingsPage`
+- 建立后端本地设置持久化
+- 提供设置接口：
+  - `GET /api/settings`
+  - `PUT /api/settings`
+  - `PUT /api/settings/openai-key`
+  - `DELETE /api/settings/openai-key`
+- 建立 `light / dark` 两套主题 token 底座
+- 让默认质量、默认尺寸、默认导出格式从设置回填到前端入口
 
 ## P2
+
+- 重做 `OwnerOverviewPage` 的视觉和卡片结构
+- 重做 `ImageEditorPage` 的精细交互与主题适配
+- 做前端按路由拆包，解决当前 `build` 的大 chunk 警告
+- 补更完整的前端测试覆盖
+
+## P3
 
 - 把图片项排序从“上移/下移”升级成拖拽排序
 - 给版本轨加入更明确的来源类型徽标和当前定稿标记
 - 给 utility drawer 加键盘可达性和焦点管理
-- 优化通知中心的去重与更细粒度提示
-
-## P3
-
 - 接真实发布适配层
-- 补更细的事件流展示文案
-- 引入更强的批量导入辅助能力，但不破坏单图编辑主模型
