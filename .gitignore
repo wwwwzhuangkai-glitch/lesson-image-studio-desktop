@@ -13,6 +13,7 @@ frontend/dist/
 # Local reference images
 /*.jpg
 /*.JPG
+/PLAN.md
 
 # Runtime data
 data/*
