@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router-dom'
 
 import { listRecentOwners, openOwner } from '../lib/api'
 import { useUiStore } from '../store/uiStore'
+import { AppTopbar } from './AppTopbar'
 
 const OWNER_OPTIONS = [
   { value: 'question', label: '题目' },
@@ -55,7 +56,10 @@ export function OwnerEntryPage() {
   return (
     <div className="landing-shell">
       <section className="landing-copy panel">
-        <div className="eyebrow">Lesson Image Studio</div>
+        <div className="panel-heading">
+          <div className="eyebrow">Lesson Image Studio</div>
+          <AppTopbar />
+        </div>
         <h1>教研画图工作台</h1>
         <p>
           围绕题目 ID、知识素材 ID 或临时其它模式，管理多图、版本树、异步改图任务和定稿结果。

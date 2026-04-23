@@ -15,6 +15,7 @@ import {
 } from '../lib/api'
 import type { ImageItemSummary } from '../types/api'
 import { useUiStore } from '../store/uiStore'
+import { AppTopbar } from './AppTopbar'
 import { useInputDialog } from './InputDialog'
 
 function getPreview(item: ImageItemSummary) {
@@ -197,6 +198,7 @@ export function OwnerOverviewPage() {
             >
               发布整包占位
             </button>
+            <AppTopbar />
           </div>
         </header>
 

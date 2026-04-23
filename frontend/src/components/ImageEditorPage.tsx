@@ -23,6 +23,7 @@ import {
 } from '../lib/api'
 import { useUiStore } from '../store/uiStore'
 import type { PromptPreset, Version } from '../types/api'
+import { AppTopbar } from './AppTopbar'
 import { CanvasWorkbench } from './CanvasWorkbench'
 import { useInputDialog } from './InputDialog'
 import { usePresetFormDialog } from './PresetFormDialog'
@@ -350,6 +351,7 @@ export function ImageEditorPage() {
           <div className="topbar-actions">
             <span className="topbar-chip">{selectedVersion ? '已选中版本' : '等待选中版本'}</span>
             {currentFinalVersion ? <span className="topbar-chip topbar-chip-success">当前已有定稿</span> : null}
+            <AppTopbar />
           </div>
         </header>
 
