@@ -336,6 +336,60 @@ def test_global_concurrency_blocks_cross_item_jobs(client):
     assert "并发上限" in second.json()["detail"]
 
 
+def test_export_uses_default_export_format(client):
+    client.put("/api/settings", json={"default_export_format": "jpeg"})
+
+    owner = client.post(
+        "/api/owners/open",
+        json={"owner_type": "other", "local_title": "导出格式"},
+    ).json()["owner"]
+    item = client.post(
+        f"/api/owners/{owner['id']}/image-items",
+        json={"title": "导出图"},
+    ).json()["image_item"]
+    version = client.post(
+        f"/api/image-items/{item['id']}/import",
+        files={"file": ("root.png", build_png_bytes("white"), "image/png")},
+    ).json()
+
+    response = client.post(f"/api/versions/{version['id']}/export")
+    assert response.status_code == 200
+    payload = response.json()
+    # Storage key and URL should now carry a JPEG extension
+    assert payload["storage_key"].endswith(".jpg")
+    assert payload["file_url"].endswith(".jpg")
+
+    # And the file on disk should actually be a JPEG (magic bytes FF D8 FF)
+    data_dir = Path(client.app.state.settings.file_storage_dir)
+    exported_bytes = (data_dir / payload["storage_key"]).read_bytes()
+    assert exported_bytes[:3] == b"\xff\xd8\xff"
+
+
+def test_export_default_png_keeps_original_bytes(client):
+    # default is PNG; the export path should pass through without re-encoding.
+    owner = client.post(
+        "/api/owners/open",
+        json={"owner_type": "other", "local_title": "默认导出"},
+    ).json()["owner"]
+    item = client.post(
+        f"/api/owners/{owner['id']}/image-items",
+        json={"title": "默认导出图"},
+    ).json()["image_item"]
+    source_bytes = build_png_bytes("red")
+    version = client.post(
+        f"/api/image-items/{item['id']}/import",
+        files={"file": ("root.png", source_bytes, "image/png")},
+    ).json()
+
+    response = client.post(f"/api/versions/{version['id']}/export")
+    assert response.status_code == 200
+    payload = response.json()
+    data_dir = Path(client.app.state.settings.file_storage_dir)
+    exported_bytes = (data_dir / payload["storage_key"]).read_bytes()
+    # PNG default flows through save_bytes as raw copy
+    assert exported_bytes[:8] == b"\x89PNG\r\n\x1a\n"
+
+
 def test_recent_owner_limit_uses_app_settings(tmp_path: Path):
     settings = Settings(
         data_dir=str(tmp_path / "data"),

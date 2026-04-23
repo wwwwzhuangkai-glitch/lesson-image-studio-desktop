@@ -88,13 +88,43 @@ class StorageService:
             mime_type="image/png",
         )
 
-    def export_copy(self, storage_key: str, *, export_name: str) -> StoredFile:
+    def export_copy(
+        self,
+        storage_key: str,
+        *,
+        export_name: str,
+        target_format: str | None = None,
+    ) -> StoredFile:
         source_path = self.resolve_path(storage_key)
+        raw_bytes = source_path.read_bytes()
+
+        if not target_format:
+            return self.save_bytes(
+                raw_bytes,
+                category="exports",
+                file_name=export_name or source_path.name,
+                mime_type=self._guess_mime_type(source_path.name),
+            )
+
+        fmt = target_format.lower()
+        if fmt not in _EXPORT_FORMAT_CONFIG:
+            raise ValueError(f"不支持的导出格式：{target_format}。")
+
+        pil_format, mime_type, extension, flatten = _EXPORT_FORMAT_CONFIG[fmt]
+        image = Image.open(io.BytesIO(raw_bytes))
+        if flatten and image.mode != "RGB":
+            image = image.convert("RGB")
+        buffer = io.BytesIO()
+        image.save(buffer, format=pil_format)
+        image.close()
+
+        base_name = Path(export_name or source_path.name).stem or "export"
+        final_name = f"{base_name}{extension}"
         return self.save_bytes(
-            source_path.read_bytes(),
+            buffer.getvalue(),
             category="exports",
-            file_name=export_name or source_path.name,
-            mime_type=self._guess_mime_type(source_path.name),
+            file_name=final_name,
+            mime_type=mime_type,
         )
 
     @staticmethod
@@ -106,3 +136,12 @@ class StorageService:
         if mime_type:
             return mimetypes.guess_extension(mime_type) or ".png"
         return ".png"
+
+
+# (pil_format, mime_type, extension, flatten_alpha)
+_EXPORT_FORMAT_CONFIG: dict[str, tuple[str, str, str, bool]] = {
+    "png": ("PNG", "image/png", ".png", False),
+    "jpeg": ("JPEG", "image/jpeg", ".jpg", True),
+    "jpg": ("JPEG", "image/jpeg", ".jpg", True),
+    "webp": ("WEBP", "image/webp", ".webp", False),
+}

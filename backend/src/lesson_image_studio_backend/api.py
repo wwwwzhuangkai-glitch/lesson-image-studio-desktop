@@ -699,7 +699,12 @@ def export_version_endpoint(
         version = get_version_or_404(db, version_id)
         image_item = get_image_item_or_404(db, version.image_item_id)
         owner = get_owner_or_404(db, image_item.owner_id)
-        stored = storage.export_copy(version.storage_key, export_name=version.file_name)
+        target_format = load_app_settings(db).default_export_format
+        stored = storage.export_copy(
+            version.storage_key,
+            export_name=version.file_name,
+            target_format=target_format,
+        )
         from .services.events import log_event
 
         log_event(
@@ -708,7 +713,10 @@ def export_version_endpoint(
             image_item_id=image_item.id,
             version_id=version.id,
             event_type="version_exported",
-            payload={"export_storage_key": stored.storage_key},
+            payload={
+                "export_storage_key": stored.storage_key,
+                "export_format": target_format,
+            },
         )
         db.commit()
     except ValueError as exc:
