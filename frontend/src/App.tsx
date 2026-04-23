@@ -8,6 +8,7 @@ import { NotificationCenter } from './components/NotificationCenter'
 import { OwnerEntryPage } from './components/OwnerEntryPage'
 import { OwnerOverviewPage } from './components/OwnerOverviewPage'
 import { PresetFormDialogRoot } from './components/PresetFormDialog'
+import { SettingsPage } from './components/SettingsPage'
 import { UtilityDrawer } from './components/UtilityDrawer'
 import { useTheme } from './hooks/useTheme'
 import { getAppSettings } from './lib/api'
@@ -39,6 +40,7 @@ function AppShell() {
         <Route path="/" element={<OwnerEntryPage />} />
         <Route path="/owners/:ownerId" element={<OwnerOverviewPage />} />
         <Route path="/items/:itemId" element={<ImageEditorPage />} />
+        <Route path="/settings" element={<SettingsPage />} />
       </Routes>
 
       <UtilityDrawer />
