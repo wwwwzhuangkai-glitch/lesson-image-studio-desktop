@@ -43,11 +43,14 @@ export function ImageEditorPage() {
   const queryClient = useQueryClient()
   const pushNotice = useUiStore((state) => state.pushNotice)
   const setCurrentOwnerId = useUiStore((state) => state.setCurrentOwnerId)
+  const setCurrentImageItemId = useUiStore((state) => state.setCurrentImageItemId)
   const openUtilityDrawer = useUiStore((state) => state.openUtilityDrawer)
   const jobIndicatorCount = useUiStore((state) => state.jobIndicatorCount)
+  const promptText = useUiStore((state) => state.editorPromptText)
+  const setPromptText = useUiStore((state) => state.setEditorPromptText)
+  const clearEditorPromptText = useUiStore((state) => state.clearEditorPromptText)
   const inputDialog = useInputDialog()
   const presetFormDialog = usePresetFormDialog()
-  const [promptText, setPromptText] = useState('')
   const [quality, setQuality] = useState<'low' | 'medium' | 'high'>('medium')
   const [size, setSize] = useState<'1024x1024' | '1536x1024' | '1024x1536'>('1024x1024')
   const [selectedVersionId, setSelectedVersionId] = useState<string | null>(null)
@@ -79,6 +82,14 @@ export function ImageEditorPage() {
       setCurrentOwnerId(detailQuery.data.image_item.owner_id)
     }
   }, [detailQuery.data?.image_item.owner_id, setCurrentOwnerId])
+
+  useEffect(() => {
+    setCurrentImageItemId(itemId || null)
+    return () => {
+      setCurrentImageItemId(null)
+      clearEditorPromptText()
+    }
+  }, [itemId, setCurrentImageItemId, clearEditorPromptText])
 
   useEffect(() => {
     if (!detailQuery.data?.versions.length) {

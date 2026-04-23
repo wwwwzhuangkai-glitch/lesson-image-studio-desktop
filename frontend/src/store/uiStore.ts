@@ -17,22 +17,27 @@ interface UiState {
   utilityTab: UtilityTab
   taskScope: TaskScope
   currentOwnerId: string | null
+  currentImageItemId: string | null
   notices: Notice[]
   jobIndicatorCount: number
   themeMode: ThemeMode
   themeVariant: ThemeVariant
   themeHydrated: boolean
+  editorPromptText: string
   openUtilityDrawer: (tab?: UtilityTab) => void
   closeUtilityDrawer: () => void
   setUtilityTab: (tab: UtilityTab) => void
   setTaskScope: (scope: TaskScope) => void
   setCurrentOwnerId: (ownerId: string | null) => void
+  setCurrentImageItemId: (itemId: string | null) => void
   pushNotice: (notice: Omit<Notice, 'id'>) => void
   dismissNotice: (id: string) => void
   setJobIndicatorCount: (count: number) => void
   setThemeMode: (mode: ThemeMode) => void
   setThemeVariant: (variant: ThemeVariant) => void
   hydrateTheme: (mode: ThemeMode, variant: ThemeVariant) => void
+  setEditorPromptText: (text: string) => void
+  clearEditorPromptText: () => void
 }
 
 function readInitialTheme(): { mode: ThemeMode; variant: ThemeVariant } {
@@ -68,16 +73,19 @@ export const useUiStore = create<UiState>((set) => ({
   utilityTab: 'tasks',
   taskScope: 'owner',
   currentOwnerId: null,
+  currentImageItemId: null,
   notices: [],
   jobIndicatorCount: 0,
   themeMode: initialTheme.mode,
   themeVariant: initialTheme.variant,
   themeHydrated: false,
+  editorPromptText: '',
   openUtilityDrawer: (tab) => set((state) => ({ utilityDrawerOpen: true, utilityTab: tab ?? state.utilityTab })),
   closeUtilityDrawer: () => set({ utilityDrawerOpen: false }),
   setUtilityTab: (tab) => set({ utilityTab: tab }),
   setTaskScope: (scope) => set({ taskScope: scope }),
   setCurrentOwnerId: (ownerId) => set({ currentOwnerId: ownerId }),
+  setCurrentImageItemId: (itemId) => set({ currentImageItemId: itemId }),
   pushNotice: (notice) =>
     set((state) => ({
       notices: [...state.notices, { ...notice, id: `${Date.now()}-${Math.random()}` }],
@@ -99,4 +107,6 @@ export const useUiStore = create<UiState>((set) => ({
     persistTheme(mode, variant)
     set({ themeMode: mode, themeVariant: variant, themeHydrated: true })
   },
+  setEditorPromptText: (text) => set({ editorPromptText: text }),
+  clearEditorPromptText: () => set({ editorPromptText: '' }),
 }))
