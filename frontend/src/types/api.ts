@@ -171,3 +171,27 @@ export interface MessageResponse {
   success: boolean
   message: string
 }
+
+export type ThemeMode = 'light' | 'dark'
+export type ThemeVariant = 'graphite' | 'glass'
+export type ExportFormat = 'png' | 'jpeg' | 'webp'
+
+export interface AppSettings {
+  has_openai_api_key: boolean
+  openai_base_url: string
+  openai_model: string
+  default_export_format: ExportFormat
+  theme_mode: ThemeMode
+  theme_variant: ThemeVariant
+  max_concurrent_jobs: number
+  updated_at: string
+}
+
+export interface AppSettingsUpdate {
+  openai_base_url?: string
+  openai_model?: string
+  default_export_format?: ExportFormat
+  theme_mode?: ThemeMode
+  theme_variant?: ThemeVariant
+  max_concurrent_jobs?: number
+}

@@ -1,0 +1,194 @@
+/* Theme tokens for Lesson Image Studio.
+   Four combinations: (graphite | glass) x (light | dark).
+   Switched via [data-theme="<variant>-<mode>"] on <html>. */
+
+/* ---------------- shared geometry & motion (mode-agnostic) ---------------- */
+:root {
+  --dur-fast: 120ms;
+  --dur-base: 200ms;
+  --ease-out: cubic-bezier(0.2, 0, 0, 1);
+  --radius-pill: 999px;
+}
+
+/* ---------------- defaults (fallback before data-theme is set) ---------------- */
+:root {
+  /* these are overwritten by any [data-theme="..."] block below;
+     they only matter if the inline theme script fails. */
+  --bg: #f7f8fa;
+  --bg-elevated: #eef0f4;
+  --bg-accent: transparent;
+  --surface: #ffffff;
+  --surface-raised: #ffffff;
+  --surface-hover: #f0f2f6;
+  --surface-active: #e8ecf1;
+  --border: #e6e8ec;
+  --border-strong: #c9cdd4;
+  --divider: #eef0f4;
+  --text: #18212f;
+  --text-muted: #5a6473;
+  --text-subtle: #8e96a3;
+  --text-inverse: #ffffff;
+  --accent: #2b6cb0;
+  --accent-fg: #ffffff;
+  --accent-hover: #23568a;
+  --accent-soft: rgba(43, 108, 176, 0.12);
+  --success: #2f855a;
+  --success-fg: #ffffff;
+  --warning: #b7791f;
+  --warning-fg: #ffffff;
+  --danger: #c53030;
+  --danger-fg: #ffffff;
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --shadow-sm: none;
+  --page-bg: var(--bg);
+  --focus-ring: 0 0 0 2px color-mix(in srgb, var(--accent) 35%, transparent);
+  color-scheme: light;
+}
+
+/* ---------------- graphite · light (default) ---------------- */
+[data-theme="graphite-light"] {
+  --bg: #f7f8fa;
+  --bg-elevated: #eef0f4;
+  --bg-accent: transparent;
+  --surface: #ffffff;
+  --surface-raised: #ffffff;
+  --surface-hover: #f0f2f6;
+  --surface-active: #e8ecf1;
+  --border: #e6e8ec;
+  --border-strong: #c9cdd4;
+  --divider: #eef0f4;
+  --text: #18212f;
+  --text-muted: #5a6473;
+  --text-subtle: #8e96a3;
+  --text-inverse: #ffffff;
+  --accent: #2b6cb0;
+  --accent-fg: #ffffff;
+  --accent-hover: #23568a;
+  --accent-soft: rgba(43, 108, 176, 0.1);
+  --success: #2f855a;
+  --success-fg: #ffffff;
+  --warning: #b7791f;
+  --warning-fg: #ffffff;
+  --danger: #c53030;
+  --danger-fg: #ffffff;
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --shadow-sm: none;
+  --page-bg: var(--bg);
+  --focus-ring: 0 0 0 2px color-mix(in srgb, var(--accent) 30%, transparent);
+  color-scheme: light;
+}
+
+/* ---------------- graphite · dark ---------------- */
+[data-theme="graphite-dark"] {
+  --bg: #0f131a;
+  --bg-elevated: #161b24;
+  --bg-accent: transparent;
+  --surface: #1a2030;
+  --surface-raised: #1f2638;
+  --surface-hover: #252c40;
+  --surface-active: #2d3450;
+  --border: #252c36;
+  --border-strong: #3a4050;
+  --divider: #222838;
+  --text: #e5e9ef;
+  --text-muted: #99a3b0;
+  --text-subtle: #6c7682;
+  --text-inverse: #0f131a;
+  --accent: #6aa6e6;
+  --accent-fg: #0f131a;
+  --accent-hover: #87b8ee;
+  --accent-soft: rgba(106, 166, 230, 0.18);
+  --success: #4cbb7f;
+  --success-fg: #0f131a;
+  --warning: #e0a54e;
+  --warning-fg: #0f131a;
+  --danger: #e06b6b;
+  --danger-fg: #0f131a;
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --shadow-sm: none;
+  --page-bg: var(--bg);
+  --focus-ring: 0 0 0 2px color-mix(in srgb, var(--accent) 40%, transparent);
+  color-scheme: dark;
+}
+
+/* ---------------- glass · light (legacy soft-mist) ---------------- */
+[data-theme="glass-light"] {
+  --bg: #edf2fb;
+  --bg-elevated: #e4ebf5;
+  --bg-accent: rgba(170, 218, 255, 0.28);
+  --surface: rgba(255, 255, 255, 0.78);
+  --surface-raised: rgba(255, 255, 255, 0.92);
+  --surface-hover: rgba(245, 249, 255, 0.95);
+  --surface-active: rgba(219, 232, 255, 0.98);
+  --border: rgba(162, 184, 213, 0.28);
+  --border-strong: rgba(145, 166, 193, 0.42);
+  --divider: rgba(166, 185, 210, 0.26);
+  --text: #173150;
+  --text-muted: #6b7f99;
+  --text-subtle: #8fa0b8;
+  --text-inverse: #ffffff;
+  --accent: #3d7bd8;
+  --accent-fg: #ffffff;
+  --accent-hover: #2b5da8;
+  --accent-soft: rgba(74, 118, 200, 0.14);
+  --success: #1d7b56;
+  --success-fg: #ffffff;
+  --warning: #8d6118;
+  --warning-fg: #ffffff;
+  --danger: #b04a5d;
+  --danger-fg: #ffffff;
+  --radius-sm: 12px;
+  --radius-md: 20px;
+  --radius-lg: 30px;
+  --shadow-sm: 0 18px 40px rgba(96, 124, 165, 0.1);
+  --page-bg:
+    radial-gradient(circle at 18% 18%, rgba(170, 218, 255, 0.28), transparent 22%),
+    radial-gradient(circle at 82% 14%, rgba(185, 233, 219, 0.24), transparent 24%),
+    linear-gradient(180deg, #edf2fb 0%, #e4ebf5 100%);
+  --focus-ring: 0 0 0 2px color-mix(in srgb, var(--accent) 28%, transparent);
+  color-scheme: light;
+}
+
+/* ---------------- glass · dark (new, mirrors glass-light geometry) ---------------- */
+[data-theme="glass-dark"] {
+  --bg: #0f131d;
+  --bg-elevated: #151a26;
+  --bg-accent: rgba(120, 180, 240, 0.1);
+  --surface: rgba(30, 38, 52, 0.78);
+  --surface-raised: rgba(38, 48, 66, 0.9);
+  --surface-hover: rgba(46, 58, 80, 0.94);
+  --surface-active: rgba(60, 80, 116, 0.96);
+  --border: rgba(255, 255, 255, 0.08);
+  --border-strong: rgba(255, 255, 255, 0.18);
+  --divider: rgba(255, 255, 255, 0.06);
+  --text: #dfe8f5;
+  --text-muted: #98a8bf;
+  --text-subtle: #6d7c92;
+  --text-inverse: #0f131d;
+  --accent: #7aa4d6;
+  --accent-fg: #0f131d;
+  --accent-hover: #93b6df;
+  --accent-soft: rgba(122, 164, 214, 0.18);
+  --success: #4fbd86;
+  --success-fg: #0f131d;
+  --warning: #d49c56;
+  --warning-fg: #0f131d;
+  --danger: #e07583;
+  --danger-fg: #0f131d;
+  --radius-sm: 12px;
+  --radius-md: 20px;
+  --radius-lg: 30px;
+  --shadow-sm: 0 18px 40px rgba(0, 0, 0, 0.45);
+  --page-bg:
+    radial-gradient(circle at 18% 18%, rgba(60, 110, 170, 0.2), transparent 22%),
+    radial-gradient(circle at 82% 14%, rgba(70, 140, 120, 0.14), transparent 24%),
+    linear-gradient(180deg, #0f131d 0%, #141926 100%);
+  --focus-ring: 0 0 0 2px color-mix(in srgb, var(--accent) 36%, transparent);
+  color-scheme: dark;
+}

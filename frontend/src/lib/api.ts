@@ -1,4 +1,6 @@
 import type {
+  AppSettings,
+  AppSettingsUpdate,
   CreateJobResponse,
   EventQueryResponse,
   ExportResponse,
@@ -238,4 +240,26 @@ export function updatePromptPreset(
 
 export function deletePromptPreset(presetId: string) {
   return request<MessageResponse>(`/api/prompt-presets/${presetId}`, { method: 'DELETE' })
+}
+
+export function getAppSettings() {
+  return request<AppSettings>('/api/settings')
+}
+
+export function updateAppSettings(patch: AppSettingsUpdate) {
+  return request<AppSettings>('/api/settings', {
+    method: 'PUT',
+    body: { ...patch } as Record<string, unknown>,
+  })
+}
+
+export function setOpenAIKey(key: string) {
+  return request<AppSettings>('/api/settings/openai-key', {
+    method: 'PUT',
+    body: { openai_api_key: key },
+  })
+}
+
+export function clearOpenAIKey() {
+  return request<AppSettings>('/api/settings/openai-key', { method: 'DELETE' })
 }
