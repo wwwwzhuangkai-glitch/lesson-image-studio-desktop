@@ -267,6 +267,7 @@ class MessageResponse(BaseModel):
 
 class AppSettingsResponse(BaseModel):
     has_openai_api_key: bool
+    openai_api_key_source: Literal["app_settings", "env", "none"]
     openai_base_url: str
     openai_model: str
     default_export_format: Literal["png", "jpeg", "webp"]

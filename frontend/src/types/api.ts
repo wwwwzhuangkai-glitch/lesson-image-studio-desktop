@@ -176,8 +176,11 @@ export type ThemeMode = 'light' | 'dark'
 export type ThemeVariant = 'graphite' | 'glass'
 export type ExportFormat = 'png' | 'jpeg' | 'webp'
 
+export type OpenAIKeySource = 'app_settings' | 'env' | 'none'
+
 export interface AppSettings {
   has_openai_api_key: boolean
+  openai_api_key_source: OpenAIKeySource
   openai_base_url: string
   openai_model: string
   default_export_format: ExportFormat

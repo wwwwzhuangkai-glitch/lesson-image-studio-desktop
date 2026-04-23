@@ -44,6 +44,7 @@ from .services.app_settings import (
     clear_openai_api_key,
     has_openai_api_key,
     load_app_settings,
+    openai_api_key_source,
     save_app_settings,
     set_openai_api_key,
 )
@@ -809,9 +810,10 @@ def delete_prompt_preset_endpoint(preset_id: str, db: Session = Depends(get_db))
     return MessageResponse(message="模板已删除。")
 
 
-def _serialize_app_settings(row) -> AppSettingsResponse:
+def _serialize_app_settings(row, env_key: str | None) -> AppSettingsResponse:
     return AppSettingsResponse(
-        has_openai_api_key=has_openai_api_key(row),
+        has_openai_api_key=has_openai_api_key(row, env_key),
+        openai_api_key_source=openai_api_key_source(row, env_key),
         openai_base_url=row.openai_base_url,
         openai_model=row.openai_model,
         default_export_format=row.default_export_format,
@@ -823,42 +825,50 @@ def _serialize_app_settings(row) -> AppSettingsResponse:
 
 
 @router.get("/settings", response_model=AppSettingsResponse)
-def get_app_settings_endpoint(db: Session = Depends(get_db)) -> AppSettingsResponse:
+def get_app_settings_endpoint(
+    db: Session = Depends(get_db),
+    settings: Settings = Depends(get_app_settings),
+) -> AppSettingsResponse:
     try:
         row = load_app_settings(db)
     except ValueError as exc:
         raise HTTPException(status_code=500, detail=str(exc)) from exc
-    return _serialize_app_settings(row)
+    return _serialize_app_settings(row, settings.openai_api_key)
 
 
 @router.put("/settings", response_model=AppSettingsResponse)
 def update_app_settings_endpoint(
     payload: AppSettingsUpdateRequest,
     db: Session = Depends(get_db),
+    settings: Settings = Depends(get_app_settings),
 ) -> AppSettingsResponse:
     try:
         row = save_app_settings(db, **payload.model_dump(exclude_none=True))
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
-    return _serialize_app_settings(row)
+    return _serialize_app_settings(row, settings.openai_api_key)
 
 
 @router.put("/settings/openai-key", response_model=AppSettingsResponse)
 def set_openai_key_endpoint(
     payload: OpenAIKeyUpdateRequest,
     db: Session = Depends(get_db),
+    settings: Settings = Depends(get_app_settings),
 ) -> AppSettingsResponse:
     try:
         row = set_openai_api_key(db, payload.openai_api_key)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
-    return _serialize_app_settings(row)
+    return _serialize_app_settings(row, settings.openai_api_key)
 
 
 @router.delete("/settings/openai-key", response_model=AppSettingsResponse)
-def clear_openai_key_endpoint(db: Session = Depends(get_db)) -> AppSettingsResponse:
+def clear_openai_key_endpoint(
+    db: Session = Depends(get_db),
+    settings: Settings = Depends(get_app_settings),
+) -> AppSettingsResponse:
     try:
         row = clear_openai_api_key(db)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
-    return _serialize_app_settings(row)
+    return _serialize_app_settings(row, settings.openai_api_key)

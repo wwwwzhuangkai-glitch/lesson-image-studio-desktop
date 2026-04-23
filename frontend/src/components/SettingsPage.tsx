@@ -173,9 +173,13 @@ export function SettingsPage() {
             </div>
             <div className="settings-inline">
               <span className={`key-status-badge${settings.has_openai_api_key ? ' configured' : ''}`}>
-                {settings.has_openai_api_key ? '已配置' : '未配置'}
+                {settings.openai_api_key_source === 'app_settings'
+                  ? '已配置 · 本地'
+                  : settings.openai_api_key_source === 'env'
+                    ? '已配置 · 来自环境变量'
+                    : '未配置'}
               </span>
-              {settings.has_openai_api_key ? (
+              {settings.openai_api_key_source === 'app_settings' ? (
                 <button
                   type="button"
                   className="ghost-button small danger"
@@ -184,6 +188,11 @@ export function SettingsPage() {
                 >
                   清空密钥
                 </button>
+              ) : null}
+              {settings.openai_api_key_source === 'env' ? (
+                <span className="settings-help">
+                  环境变量 key 不能从 UI 清空，请修改 <code>.env</code> 或在上方填新 key 覆盖。
+                </span>
               ) : null}
             </div>
             <form className="settings-row" onSubmit={handleSaveKey}>

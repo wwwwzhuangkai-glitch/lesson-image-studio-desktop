@@ -74,5 +74,17 @@ def clear_openai_api_key(db: Session) -> AppSettings:
     return row
 
 
-def has_openai_api_key(row: AppSettings) -> bool:
-    return bool(row.openai_api_key and row.openai_api_key.strip())
+def has_openai_api_key(row: AppSettings, env_key: str | None = None) -> bool:
+    return bool(
+        (row.openai_api_key and row.openai_api_key.strip())
+        or (env_key and env_key.strip())
+    )
+
+
+def openai_api_key_source(row: AppSettings, env_key: str | None = None) -> str:
+    """Where the key the runtime will use actually comes from."""
+    if row.openai_api_key and row.openai_api_key.strip():
+        return "app_settings"
+    if env_key and env_key.strip():
+        return "env"
+    return "none"

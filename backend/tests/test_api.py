@@ -242,6 +242,7 @@ def test_app_settings_defaults_after_migration(client):
     assert response.status_code == 200
     payload = response.json()
     assert payload["has_openai_api_key"] is False
+    assert payload["openai_api_key_source"] == "none"
     assert payload["openai_base_url"] == ""
     assert payload["openai_model"] == "gpt-image-2"
     assert payload["default_export_format"] == "png"
@@ -251,6 +252,44 @@ def test_app_settings_defaults_after_migration(client):
     # 绝不暴露任何 key 字符
     assert "openai_api_key" not in payload
     assert "masked_openai_api_key" not in payload
+
+
+def test_openai_api_key_source_reflects_env(tmp_path: Path):
+    settings = Settings(
+        data_dir=str(tmp_path / "data"),
+        database_url=f"sqlite:///{tmp_path / 'test.db'}",
+        openai_api_key="sk-from-env",
+    )
+    settings.resolved_data_dir.mkdir(parents=True, exist_ok=True)
+    alembic_cfg = Config(str(Path(__file__).resolve().parents[1] / "alembic.ini"))
+    alembic_cfg.set_main_option("script_location", str(Path(__file__).resolve().parents[1] / "alembic"))
+    alembic_cfg.set_main_option("sqlalchemy.url", settings.resolved_database_url)
+    command.upgrade(alembic_cfg, "head")
+    app = create_app(settings)
+
+    with TestClient(app) as client:
+        # AppSettings empty, env has the key -> source=env
+        initial = client.get("/api/settings").json()
+        assert initial["has_openai_api_key"] is True
+        assert initial["openai_api_key_source"] == "env"
+
+        # Writing a key into AppSettings wins over env -> source=app_settings
+        client.put("/api/settings/openai-key", json={"openai_api_key": "sk-in-db"})
+        stored = client.get("/api/settings").json()
+        assert stored["openai_api_key_source"] == "app_settings"
+
+        # Clearing AppSettings falls back to env
+        client.delete("/api/settings/openai-key")
+        cleared = client.get("/api/settings").json()
+        assert cleared["has_openai_api_key"] is True
+        assert cleared["openai_api_key_source"] == "env"
+
+
+def test_openai_api_key_source_none_when_both_empty(client):
+    # baseline client fixture has openai_api_key=None, so source should be none
+    payload = client.get("/api/settings").json()
+    assert payload["has_openai_api_key"] is False
+    assert payload["openai_api_key_source"] == "none"
 
 
 def test_app_settings_update_fields(client):
