@@ -130,11 +130,18 @@ class JobRunner:
     def _load_openai_runtime(self, db: Session) -> tuple[str | None, str | None, str]:
         row = load_app_settings(db)
         api_key = (row.openai_api_key or self.settings.openai_api_key or "").strip() or None
-        base_url = row.openai_base_url.strip() or None
-        model = (row.openai_model or "").strip()
+        base_url = (
+            row.openai_base_url.strip()
+            or (self.settings.openai_base_url or "").strip()
+        ) or None
+        model = (
+            row.openai_model.strip()
+            or (self.settings.openai_model or "").strip()
+        )
         if not model:
             raise ValueError(
-                "AppSettings.openai_model 为空，请先在设置页填写可用的生图模型名称。"
+                "AppSettings 与环境变量都没有配置 openai_model，"
+                "请在设置页填写可用的生图模型名称。"
             )
         return api_key, base_url, model
 

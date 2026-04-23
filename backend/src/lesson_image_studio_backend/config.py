@@ -17,6 +17,8 @@ class Settings(BaseSettings):
     database_url: str | None = None
     data_dir: str | None = None
     openai_api_key: str | None = None
+    openai_base_url: str | None = None
+    openai_model: str | None = None
     recent_owner_limit: int = 5
     default_export_format: str = "png"
     cors_origins: list[str] = ["http://127.0.0.1:5173", "http://localhost:5173"]
