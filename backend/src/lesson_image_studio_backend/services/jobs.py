@@ -6,12 +6,13 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 from openai import OpenAI
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from ..config import Settings
 from ..database import Database
 from ..models import EditJob, ImageItem, ImageMask, ImageVersion, Owner
+from .app_settings import load_app_settings
 from .events import log_event
 from .storage import StorageService
 
@@ -27,6 +28,8 @@ def create_edit_job(
     quality: str,
     size: str,
 ) -> EditJob:
+    settings_row = load_app_settings(db)
+    _ensure_global_concurrency(db, settings_row.max_concurrent_jobs)
     _ensure_no_active_job(db, image_item.id)
     if base_version.image_item_id != image_item.id:
         raise ValueError("base_version 必须属于当前图片项。")
@@ -75,6 +78,8 @@ def create_generate_job(
     quality: str,
     size: str,
 ) -> EditJob:
+    settings_row = load_app_settings(db)
+    _ensure_global_concurrency(db, settings_row.max_concurrent_jobs)
     _ensure_no_active_job(db, image_item.id)
     job = EditJob(
         owner_id=owner.id,
@@ -122,6 +127,13 @@ class JobRunner:
         self.db = db
         self.storage = storage
 
+    def _load_openai_runtime(self, db: Session) -> tuple[str | None, str | None, str]:
+        row = load_app_settings(db)
+        api_key = (row.openai_api_key or self.settings.openai_api_key or "").strip() or None
+        base_url = row.openai_base_url.strip() or None
+        model = (row.openai_model or "gpt-image-2").strip() or "gpt-image-2"
+        return api_key, base_url, model
+
     def run_job(self, job_id: str) -> None:
         with self.db.session() as db:
             job = get_job_or_404(db, job_id)
@@ -134,19 +146,20 @@ class JobRunner:
             job.started_at = datetime.now(UTC)
             db.commit()
 
-            if not self.settings.openai_api_key:
+            api_key, base_url, model = self._load_openai_runtime(db)
+            if not api_key:
                 self._fail_job(
                     db,
                     job,
                     owner_id=owner.id,
                     image_item_id=image_item.id,
-                    message="未配置 OPENAI_API_KEY，无法执行 AI 生图/改图。",
+                    message="未配置 OpenAI API Key，无法执行 AI 生图/改图。请在设置页填入 Key 或通过环境变量注入。",
                     code="missing_api_key",
                 )
                 return
 
             try:
-                output = self._run_openai_job(db, job)
+                output = self._run_openai_job(db, job, api_key=api_key, base_url=base_url, model=model)
                 version = ImageVersion(
                     image_item_id=image_item.id,
                     parent_version_id=job.base_version_id,
@@ -162,13 +175,14 @@ class JobRunner:
                     prompt_summary=_summarize_prompt(job.prompt_text),
                     mask_id=job.mask_id,
                     provider="openai",
-                    model=job.model,
+                    model=model,
                     quality=job.quality,
                     size=job.size,
                 )
                 db.add(version)
                 db.flush()
                 job.output_version_id = version.id
+                job.model = model
                 job.status = "succeeded"
                 job.finished_at = datetime.now(UTC)
                 log_event(
@@ -190,15 +204,24 @@ class JobRunner:
                     code="job_failed",
                 )
 
-    def _run_openai_job(self, db: Session, job: EditJob):
+    def _run_openai_job(
+        self,
+        db: Session,
+        job: EditJob,
+        *,
+        api_key: str,
+        base_url: str | None,
+        model: str,
+    ):
         client = OpenAI(
-            api_key=self.settings.openai_api_key,
+            api_key=api_key,
+            base_url=base_url,
             http_client=httpx.Client(trust_env=False),
         )
 
         if job.job_type == "generate":
             response = client.images.generate(
-                model="gpt-image-2",
+                model=model,
                 prompt=job.prompt_text,
                 quality=job.quality,
                 size=job.size,
@@ -216,7 +239,7 @@ class JobRunner:
                 mask_path = self.storage.resolve_path(image_mask.storage_key)
             with Path(self.storage.resolve_path(base_version.storage_key)).open("rb") as image_file:
                 kwargs = {
-                    "model": "gpt-image-2",
+                    "model": model,
                     "prompt": job.prompt_text,
                     "quality": job.quality,
                     "size": job.size,
@@ -277,6 +300,22 @@ def _ensure_no_active_job(db: Session, image_item_id: str) -> None:
     )
     if existing:
         raise ValueError("同一图片项已有运行中任务，请等待完成后再提交。")
+
+
+def _ensure_global_concurrency(db: Session, max_concurrent: int) -> None:
+    active = (
+        db.scalar(
+            select(func.count())
+            .select_from(EditJob)
+            .where(EditJob.status.in_(("queued", "running")))
+        )
+        or 0
+    )
+    if active >= max_concurrent:
+        raise ValueError(
+            f"已有 {active} 个 AI 任务在排队或执行，达到并发上限 {max_concurrent}。"
+            "请等待任一任务完成后再提交，或在设置页调整上限。"
+        )
 
 
 def _summarize_prompt(prompt_text: str) -> str:

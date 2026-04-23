@@ -166,7 +166,7 @@ def test_missing_key_job_fails_without_output_version(client):
     payload = client.get(f"/api/jobs/{job['job_id']}").json()
     assert payload["status"] == "failed"
     assert payload["output_version_id"] is None
-    assert "OPENAI_API_KEY" in payload["error_message"]
+    assert "API Key" in payload["error_message"]
 
 
 def test_duplicate_version_creates_independent_root_item(client):
@@ -235,6 +235,105 @@ def test_personal_prompt_presets(client):
         json={"summary": "更新后的摘要"},
     )
     assert updated.status_code == 200
+
+
+def test_app_settings_defaults_after_migration(client):
+    response = client.get("/api/settings")
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["has_openai_api_key"] is False
+    assert payload["openai_base_url"] == ""
+    assert payload["openai_model"] == "gpt-image-2"
+    assert payload["default_export_format"] == "png"
+    assert payload["theme_mode"] == "light"
+    assert payload["theme_variant"] == "graphite"
+    assert payload["max_concurrent_jobs"] == 2
+    # 绝不暴露任何 key 字符
+    assert "openai_api_key" not in payload
+    assert "masked_openai_api_key" not in payload
+
+
+def test_app_settings_update_fields(client):
+    response = client.put(
+        "/api/settings",
+        json={
+            "theme_mode": "dark",
+            "theme_variant": "glass",
+            "openai_base_url": "https://proxy.example.com/v1",
+            "max_concurrent_jobs": 5,
+        },
+    )
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["theme_mode"] == "dark"
+    assert payload["theme_variant"] == "glass"
+    assert payload["openai_base_url"] == "https://proxy.example.com/v1"
+    assert payload["max_concurrent_jobs"] == 5
+
+
+def test_app_settings_rejects_invalid_enum(client):
+    response = client.put("/api/settings", json={"theme_mode": "sepia"})
+    assert response.status_code == 422
+
+
+def test_openai_key_set_and_clear(client):
+    set_resp = client.put("/api/settings/openai-key", json={"openai_api_key": "sk-test-123"})
+    assert set_resp.status_code == 200
+    assert set_resp.json()["has_openai_api_key"] is True
+
+    clear_resp = client.delete("/api/settings/openai-key")
+    assert clear_resp.status_code == 200
+    assert clear_resp.json()["has_openai_api_key"] is False
+
+
+def test_global_concurrency_blocks_cross_item_jobs(client):
+    client.app.state.job_runner.run_job = lambda _: None
+    client.put("/api/settings", json={"max_concurrent_jobs": 1})
+    owner = client.post(
+        "/api/owners/open",
+        json={"owner_type": "other", "local_title": "并发上限"},
+    ).json()["owner"]
+    item_a = client.post(
+        f"/api/owners/{owner['id']}/image-items",
+        json={"title": "A 图"},
+    ).json()["image_item"]
+    item_b = client.post(
+        f"/api/owners/{owner['id']}/image-items",
+        json={"title": "B 图"},
+    ).json()["image_item"]
+    version_a = client.post(
+        f"/api/image-items/{item_a['id']}/import",
+        files={"file": ("a.png", build_png_bytes("red"), "image/png")},
+    ).json()
+    version_b = client.post(
+        f"/api/image-items/{item_b['id']}/import",
+        files={"file": ("b.png", build_png_bytes("blue"), "image/png")},
+    ).json()
+
+    first = client.post(
+        "/api/edits",
+        json={
+            "image_item_id": item_a["id"],
+            "base_version_id": version_a["id"],
+            "prompt_text": "第一张",
+            "quality": "medium",
+            "size": "1024x1024",
+        },
+    )
+    assert first.status_code == 200
+
+    second = client.post(
+        "/api/edits",
+        json={
+            "image_item_id": item_b["id"],
+            "base_version_id": version_b["id"],
+            "prompt_text": "第二张跨图",
+            "quality": "medium",
+            "size": "1024x1024",
+        },
+    )
+    assert second.status_code == 400
+    assert "并发上限" in second.json()["detail"]
 
 
 def test_recent_owner_limit_uses_app_settings(tmp_path: Path):
