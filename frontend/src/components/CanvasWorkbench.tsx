@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import { Group, Image as KonvaImage, Layer, Line, Rect, Stage } from 'react-konva'
 
 import { useImageElement } from '../hooks/useImageElement'
+import { useTheme } from '../hooks/useTheme'
 
 interface RectGeometry {
   x: number
@@ -33,6 +34,19 @@ export function CanvasWorkbench({
   const [startPoint, setStartPoint] = useState<{ x: number; y: number } | null>(null)
   const [split, setSplit] = useState(0.5)
   const [compareEnabled, setCompareEnabled] = useState(true)
+  const { themeMode, themeVariant } = useTheme()
+  const accent = useMemo(() => {
+    if (typeof window === 'undefined') return '#2b6cb0'
+    const value = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim()
+    return value || '#2b6cb0'
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [themeMode, themeVariant])
+  const accentFill = useMemo(() => {
+    if (typeof window === 'undefined') return 'rgba(43,108,176,0.12)'
+    const soft = getComputedStyle(document.documentElement).getPropertyValue('--accent-soft').trim()
+    return soft || 'rgba(43,108,176,0.12)'
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [themeMode, themeVariant])
 
   const dimensions = useMemo(() => {
     if (!image) {
@@ -189,7 +203,7 @@ export function CanvasWorkbench({
           <Layer>
             <Line
               points={[dimensions.width * split, 0, dimensions.width * split, dimensions.height]}
-              stroke="#2f6bff"
+              stroke={accent}
               strokeWidth={2}
             />
           </Layer>
@@ -202,10 +216,10 @@ export function CanvasWorkbench({
               y={activeRect.y * dimensions.scale}
               width={activeRect.width * dimensions.scale}
               height={activeRect.height * dimensions.scale}
-              stroke="#2f6bff"
+              stroke={accent}
               strokeWidth={2}
               dash={[8, 6]}
-              fill="rgba(47,107,255,0.12)"
+              fill={accentFill}
             />
           ) : null}
         </Layer>
