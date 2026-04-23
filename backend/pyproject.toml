@@ -1,0 +1,33 @@
+[project]
+name = "lesson-image-studio-backend"
+version = "0.1.0"
+description = "Backend API for Lesson Image Studio"
+authors = [
+    { name = "wang", email = "wwwwzhuangkai@gmail.com" }
+]
+requires-python = ">=3.13"
+dependencies = [
+    "alembic>=1.18.4",
+    "fastapi>=0.136.0",
+    "httpx>=0.28.1",
+    "openai>=2.32.0",
+    "pillow>=12.2.0",
+    "pydantic>=2.13.3",
+    "pydantic-settings>=2.14.0",
+    "python-multipart>=0.0.26",
+    "sqlalchemy>=2.0.49",
+    "uvicorn>=0.45.0",
+]
+
+[project.scripts]
+lesson-image-studio-api = "lesson_image_studio_backend.main:run"
+
+[build-system]
+requires = ["uv_build>=0.11.7,<0.12.0"]
+build-backend = "uv_build"
+
+[dependency-groups]
+dev = [
+    "pytest>=9.0.3",
+    "pytest-asyncio>=1.3.0",
+]
