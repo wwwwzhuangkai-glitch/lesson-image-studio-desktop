@@ -1,6 +1,6 @@
 # Decisions
 
-这份文档只记录当前已锁定、后续 AI 或工程师不得擅自推翻的产品决定。
+这份文档只记录已经锁定、后续 AI 或工程师不得擅自推翻的产品决定。
 
 ## 1. 主模型不可动
 
@@ -10,12 +10,12 @@
   - `素材ID`
   - `other + 本地生成 id`
 - 一个 `Owner` 下可以有多张图
-- 每张图有自己的版本演进路线
+- 每张图独立维护自己的版本演进路线
 
 ## 2. 图片边界不可动
 
-- 版本不能跨 `ImageItem`
-- mask 不能跨 `ImageItem`
+- `ImageVersion` 不能跨 `ImageItem`
+- `ImageMask` 不能跨 `ImageItem`
 - 改图请求不能跨 `ImageItem`
 - 如果老师想复用别的图，只能走“复制为新图片项起点”
 - “复制为新图片项起点”复制出的是新图片项的根版本，不与旧树相连
@@ -24,6 +24,11 @@
 
 - Lesson Image Studio 必须保持单屏工作台气质
 - 不能退化成长网页
+- 正式页面总数固定为 4 个：
+  - `OwnerEntryPage`
+  - `OwnerOverviewPage`
+  - `ImageEditorPage`
+  - `SettingsPage`
 - 编辑页必须维持：
   - 左版本轨
   - 中画布
@@ -36,53 +41,72 @@
 - 它不是面向 C 端用户的消费产品
 - 数据流、数据库架构、接口边界优先级高于视觉包装
 
-## 5. 下一阶段明确允许改变的部分
+## 5. 设置体系的产品定位已锁定
 
-- 整体视觉风格
-- 卡片布局
-- 组件编排
-- 主题表现
-- 动效与图标
-- 设置页新增
+- `SettingsPage` 是团队成员各自在自己机器上使用的本地设置中心
+- UI 写入的设置必须落到后端 `AppSettings`，再本地持久化
+- 日常使用场景下，产品级设置的可信来源是 `SettingsPage -> AppSettings`
+- 当前不做：
+  - 云端共享设置
+  - 团队统一在线密钥中心
+  - 多用户账号与权限系统
 
-这些都可以大胆重做，但前提是不破坏本文件前 4 节的硬规则。
+## 6. Provider 策略已锁定
 
-## 6. 主题系统（本轮锁定）
+- 当前官方 OpenAI 调用方式必须保留，不能被替换掉
+- 后续要做的是新增 provider / adapter，不是覆盖现有实现
+- `default_provider` 应该是 SettingsPage 里的全局默认 provider
+- 公司内部模型不是两套服务配置，而是一套共享的公司 AI 服务配置：
+  - 一个共享 `base_url`
+  - 一个共享认证值
+  - 通过不同请求体和模型名切 provider / adapter
+- 计划中的公司 provider 至少包含：
+  - TAL `gpt-image-2`
+  - TAL `gemini-3.1-flash-image`
+- TAL 多图输入能力可以在后端 / adapter 预留，但当前前端不做这个功能入口
 
-- 两套 variant：`graphite`（默认，石板冷静）+ `glass`（浅雾玻璃，第一版延续）
+## 7. UI 允许大改，但边界不能破
+
+- 允许大改：
+  - 整体视觉风格
+  - 卡片布局
+  - 组件编排
+  - 主题表现
+  - 动效与图标
+- 不允许破坏：
+  - 单屏工作台骨架
+  - 图片边界与版本边界
+  - 4 页结构
+- 当前模板放在 `UtilityDrawer` 的 `templates` tab，这属于当前实现
+- 未来允许继续调整模板入口，但它始终应当是次级能力，不应抢主工作流
+
+## 8. 主题系统（当前实现）不可随意回退
+
+- 两套 variant：`graphite`（默认，石板冷静）+ `glass`（浅雾玻璃）
 - 两套 mode：`light`（默认）+ `dark`
 - 合计 4 套 `data-theme`：`graphite-light` / `graphite-dark` / `glass-light` / `glass-dark`
-- 切换入口只有两个：顶栏的明暗图标（只切 mode）+ SettingsPage 的外观分区（可切 variant 与 mode）
-- 明暗态的写入必须同时落到 Zustand、localStorage、`PUT /api/settings`，不能只改其中一处
-- 任何新页面、新组件必须先走 token，不允许再引入硬编码色值
+- 切换入口只有两个：
+  - 顶栏的明暗图标（只切 mode）
+  - SettingsPage 的外观分区（切 variant 与 mode）
+- 明暗态的写入必须同时落到 Zustand、localStorage、`PUT /api/settings`
+- 新页面、新组件必须先走 token，不允许再引入大面积硬编码色值
 
-## 7. 设置体系（本轮锁定）
+## 9. 设置接口的安全边界不可动
 
-- `AppSettings` 是**单例**：`id = 'singleton'` + `CheckConstraint` 兜底
-- 首次 `alembic upgrade` 即通过 `op.bulk_insert` 写入默认行，service 层永远 `db.get(AppSettings, "singleton")` 非空
-- API 永远不回传 `openai_api_key` 的任何字符，`has_openai_api_key: bool` 是唯一出口
-- 清空 Key 必须二次确认（当前实现是 `InputDialog` 键入「清空」）
-- 并发上限 `max_concurrent_jobs` 默认 `2`，上限范围 1–10
+- `AppSettings` 是单例：`id = 'singleton'` + `CheckConstraint` 兜底
+- 首次 `alembic upgrade` 即写入默认行
+- API 永远不回传 `openai_api_key` 的任何字符
+- 当前清空 key 必须二次确认
+- 并发上限 `max_concurrent_jobs` 默认 `2`，范围 1–10
 
-## 8. 复用 vs 新增
+## 10. 接力开发的文档纪律不可动
 
-- 不引入 UI 库（shadcn / Tailwind / MUI），继续纯 CSS token
-- 前端依赖保持最小：不加 icon 库（SVG inline）、不加 dialog 库（imperative Root 组件）
-- 数据模型任何新增必须单独写一条 DECISION，不可静默加字段
-
-## 9. 模板与编辑器 prompt state（本轮锁定）
-
-- 模板（PresetCard）的**唯一展示位置**是 UtilityDrawer 的 "templates" tab
-- 编辑页检视器里不再嵌入模板库；如果未来要在编辑页加"快速载入模板"入口，只能通过调用 `useUiStore` 的 `setUtilityTab('templates') + openUtilityDrawer('templates')`
-- 编辑页 prompt textarea 的 state 从 `useState` 迁到 `uiStore.editorPromptText`，因为 UtilityDrawer 的"载入"按钮需要跨组件写入
-- `uiStore.currentImageItemId` 由 `ImageEditorPage` 的 `useEffect` 维护（挂载写 itemId，卸载清空），UtilityDrawer 据此决定"载入"按钮是否可用
-
-## 10. OpenAI 配置回落（本轮锁定）
-
-- 三个字段**各自独立**回落到环境变量：
-  - `openai_api_key` ← `LESSON_IMAGE_STUDIO_OPENAI_API_KEY`
-  - `openai_base_url` ← `LESSON_IMAGE_STUDIO_OPENAI_BASE_URL`
-  - `openai_model` ← `LESSON_IMAGE_STUDIO_OPENAI_MODEL`
-- ENV 值**从不**被前端覆盖写回；AppSettings 与 ENV 是读侧合并，不是写侧同步
-- model 双层都空时直接 `ValueError`（不保留硬编码 `"gpt-image-2"` 兜底）
-- `has_openai_api_key` 口径统一为"任一层有值"，并新增 `openai_api_key_source` 字段告诉前端真实来源
+- “当前真实实现”和“未来计划”必须分开写
+- 当前实现写进：
+  - `ARCHITECTURE.md`
+  - `UI_WORKBENCH.md`
+- 未来计划写进：
+  - `NEXT_PHASE_PLAN.md`
+  - `SETTINGS_SPEC.md`
+  - `AI_HANDOFF.md`
+- 如果数据模型、provider 策略、页面数量要改，必须先更新本文件
