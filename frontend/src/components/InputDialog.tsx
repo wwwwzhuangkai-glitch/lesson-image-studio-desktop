@@ -19,6 +19,7 @@ interface PendingDialog {
 
 let setPendingRef: ((next: PendingDialog | null) => void) | null = null
 
+// eslint-disable-next-line react-refresh/only-export-components
 export function openInputDialog(options: InputDialogOptions): Promise<string | null> {
   if (!setPendingRef) {
     return Promise.resolve(null)
@@ -28,6 +29,7 @@ export function openInputDialog(options: InputDialogOptions): Promise<string | n
   })
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export function useInputDialog() {
   return { prompt: openInputDialog }
 }
@@ -47,6 +49,10 @@ export function InputDialogRoot() {
 
   useEffect(() => {
     if (pending) {
+      // Intentional: the dialog is command-driven, so we must reset the input
+      // draft when a new request comes in. Safe because pending only changes
+      // on open/close, not every render.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setValue(pending.options.defaultValue ?? '')
     }
   }, [pending])

@@ -131,7 +131,11 @@ class JobRunner:
         row = load_app_settings(db)
         api_key = (row.openai_api_key or self.settings.openai_api_key or "").strip() or None
         base_url = row.openai_base_url.strip() or None
-        model = (row.openai_model or "gpt-image-2").strip() or "gpt-image-2"
+        model = (row.openai_model or "").strip()
+        if not model:
+            raise ValueError(
+                "AppSettings.openai_model 为空，请先在设置页填写可用的生图模型名称。"
+            )
         return api_key, base_url, model
 
     def run_job(self, job_id: str) -> None:

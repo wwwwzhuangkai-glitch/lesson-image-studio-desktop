@@ -33,6 +33,11 @@ export function SettingsPage() {
 
   useEffect(() => {
     if (query.data) {
+      // Intentional: when the server payload arrives (once, with
+      // staleTime: Infinity) we seed the draft inputs. User edits afterwards
+      // are never overwritten since query.data stops changing until a
+      // successful mutation replaces it via setQueryData.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setBaseUrlDraft(query.data.openai_base_url)
       setModelDraft(query.data.openai_model)
       setExportDraft(query.data.default_export_format)

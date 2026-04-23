@@ -29,6 +29,7 @@ interface PendingDialog {
 
 let setPendingRef: ((next: PendingDialog | null) => void) | null = null
 
+// eslint-disable-next-line react-refresh/only-export-components
 export function openPresetFormDialog(options: PresetFormOptions): Promise<PresetFormResult | null> {
   if (!setPendingRef) {
     return Promise.resolve(null)
@@ -38,6 +39,7 @@ export function openPresetFormDialog(options: PresetFormOptions): Promise<Preset
   })
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export function usePresetFormDialog() {
   return { edit: openPresetFormDialog }
 }
@@ -59,6 +61,10 @@ export function PresetFormDialogRoot() {
 
   useEffect(() => {
     if (pending) {
+      // Intentional: the dialog is command-driven, so we must reset the
+      // three draft fields when a new request comes in. Safe because
+      // pending only changes on open/close, not every render.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setName(pending.options.initial?.name ?? '')
       setSummary(pending.options.initial?.summary ?? '')
       setPromptText(pending.options.initial?.prompt_text ?? '')
