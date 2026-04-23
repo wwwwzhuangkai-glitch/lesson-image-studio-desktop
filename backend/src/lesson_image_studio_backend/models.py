@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import UTC, datetime
 from uuid import uuid4
 
-from sqlalchemy import JSON, Boolean, DateTime, ForeignKey, Integer, String, Text, UniqueConstraint
+from sqlalchemy import JSON, Boolean, CheckConstraint, DateTime, ForeignKey, Integer, String, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column
 
 from .database import Base
@@ -161,3 +161,19 @@ class PromptPreset(TimestampMixin, Base):
     discipline: Mapped[str | None] = mapped_column(String(64))
     is_builtin: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     source_preset_id: Mapped[str | None] = mapped_column(String(32), ForeignKey("prompt_preset.id"), nullable=True)
+
+
+class AppSettings(TimestampMixin, Base):
+    __tablename__ = "app_settings"
+    __table_args__ = (
+        CheckConstraint("id = 'singleton'", name="ck_app_settings_singleton"),
+    )
+
+    id: Mapped[str] = mapped_column(String(16), primary_key=True, default="singleton")
+    openai_api_key: Mapped[str | None] = mapped_column(Text, nullable=True)
+    openai_base_url: Mapped[str] = mapped_column(String(512), nullable=False, default="")
+    openai_model: Mapped[str] = mapped_column(String(64), nullable=False, default="gpt-image-2")
+    default_export_format: Mapped[str] = mapped_column(String(16), nullable=False, default="png")
+    theme_mode: Mapped[str] = mapped_column(String(16), nullable=False, default="light")
+    theme_variant: Mapped[str] = mapped_column(String(16), nullable=False, default="graphite")
+    max_concurrent_jobs: Mapped[int] = mapped_column(Integer, nullable=False, default=2)

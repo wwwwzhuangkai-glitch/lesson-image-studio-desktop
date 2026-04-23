@@ -265,5 +265,29 @@ class MessageResponse(BaseModel):
     message: str
 
 
+class AppSettingsResponse(BaseModel):
+    has_openai_api_key: bool
+    openai_base_url: str
+    openai_model: str
+    default_export_format: Literal["png", "jpeg", "webp"]
+    theme_mode: Literal["light", "dark"]
+    theme_variant: Literal["graphite", "glass"]
+    max_concurrent_jobs: int
+    updated_at: datetime
+
+
+class AppSettingsUpdateRequest(BaseModel):
+    openai_base_url: str | None = None
+    openai_model: str | None = None
+    default_export_format: Literal["png", "jpeg", "webp"] | None = None
+    theme_mode: Literal["light", "dark"] | None = None
+    theme_variant: Literal["graphite", "glass"] | None = None
+    max_concurrent_jobs: int | None = Field(default=None, ge=1, le=10)
+
+
+class OpenAIKeyUpdateRequest(BaseModel):
+    openai_api_key: str = Field(min_length=1)
+
+
 ImageItemSummaryResponse.model_rebuild()
 ImageItemDetailResponse.model_rebuild()
