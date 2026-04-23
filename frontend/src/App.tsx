@@ -3,9 +3,11 @@ import { useMemo } from 'react'
 import { BrowserRouter, Route, Routes } from 'react-router-dom'
 
 import { ImageEditorPage } from './components/ImageEditorPage'
+import { InputDialogRoot } from './components/InputDialog'
 import { NotificationCenter } from './components/NotificationCenter'
 import { OwnerEntryPage } from './components/OwnerEntryPage'
 import { OwnerOverviewPage } from './components/OwnerOverviewPage'
+import { PresetFormDialogRoot } from './components/PresetFormDialog'
 import { UtilityDrawer } from './components/UtilityDrawer'
 import { useTheme } from './hooks/useTheme'
 import { getAppSettings } from './lib/api'
@@ -41,6 +43,8 @@ function AppShell() {
 
       <UtilityDrawer />
       <NotificationCenter />
+      <InputDialogRoot />
+      <PresetFormDialogRoot />
     </div>
   )
 }

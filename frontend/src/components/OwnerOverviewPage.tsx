@@ -15,6 +15,7 @@ import {
 } from '../lib/api'
 import type { ImageItemSummary } from '../types/api'
 import { useUiStore } from '../store/uiStore'
+import { useInputDialog } from './InputDialog'
 
 function getPreview(item: ImageItemSummary) {
   return item.current_final_version ?? item.latest_version
@@ -28,6 +29,7 @@ export function OwnerOverviewPage() {
   const pushNotice = useUiStore((state) => state.pushNotice)
   const openUtilityDrawer = useUiStore((state) => state.openUtilityDrawer)
   const jobIndicatorCount = useUiStore((state) => state.jobIndicatorCount)
+  const inputDialog = useInputDialog()
   const [newTitle, setNewTitle] = useState('')
   const fileInputRefs = useRef<Record<string, HTMLInputElement | null>>({})
 
@@ -122,13 +124,20 @@ export function OwnerOverviewPage() {
     await invalidateOwner()
   }
 
-  function handleDuplicate(item: ImageItemSummary) {
+  async function handleDuplicate(item: ImageItemSummary) {
     const preview = getPreview(item)
     if (!preview) {
       pushNotice({ title: '这张图还没有可复制的起点版本' })
       return
     }
-    const title = window.prompt('新图片项标题', `${item.title} - 副本`) ?? undefined
+    const title = await inputDialog.prompt({
+      title: '复制为新图片项起点',
+      message: '会新建一个图片项，并以这张图的预览版本为新版本树的根。',
+      defaultValue: `${item.title} - 副本`,
+      placeholder: '新图片项标题',
+      confirmLabel: '复制',
+    })
+    if (!title) return
     duplicateMutation.mutate({ versionId: preview.id, title })
   }
 

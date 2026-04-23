@@ -24,6 +24,8 @@ import {
 import { useUiStore } from '../store/uiStore'
 import type { PromptPreset, Version } from '../types/api'
 import { CanvasWorkbench } from './CanvasWorkbench'
+import { useInputDialog } from './InputDialog'
+import { usePresetFormDialog } from './PresetFormDialog'
 import { VersionTree } from './VersionTree'
 
 const QUALITY_OPTIONS = [
@@ -42,6 +44,8 @@ export function ImageEditorPage() {
   const setCurrentOwnerId = useUiStore((state) => state.setCurrentOwnerId)
   const openUtilityDrawer = useUiStore((state) => state.openUtilityDrawer)
   const jobIndicatorCount = useUiStore((state) => state.jobIndicatorCount)
+  const inputDialog = useInputDialog()
+  const presetFormDialog = usePresetFormDialog()
   const [promptText, setPromptText] = useState('')
   const [quality, setQuality] = useState<'low' | 'medium' | 'high'>('medium')
   const [size, setSize] = useState<'1024x1024' | '1536x1024' | '1024x1536'>('1024x1024')
@@ -186,14 +190,19 @@ export function ImageEditorPage() {
       pushNotice({ title: '没有可保存的提示词' })
       return
     }
-    const name = window.prompt('保存为个人模板：请输入模板名称', sourcePreset ? `${sourcePreset.name} - 我的版本` : '我的快捷模板')
-    if (!name) {
-      return
-    }
-    const summary = window.prompt('请输入模板摘要', sourcePreset?.summary ?? '个人常用模板') ?? '个人常用模板'
+    const result = await presetFormDialog.edit({
+      title: '保存为个人模板',
+      description: '个人模板会出现在提示词区的"个人模板"分组里，方便复用。',
+      mode: 'create',
+      initial: {
+        name: sourcePreset ? `${sourcePreset.name} - 我的版本` : '我的快捷模板',
+        summary: sourcePreset?.summary ?? '个人常用模板',
+      },
+    })
+    if (!result) return
     await createPromptPreset({
-      name,
-      summary,
+      name: result.name,
+      summary: result.summary,
       prompt_text: promptText,
       source_preset_id: sourcePreset?.id,
       discipline: sourcePreset?.discipline ?? undefined,
@@ -215,16 +224,20 @@ export function ImageEditorPage() {
   }
 
   async function editPersonalPreset(preset: PromptPreset) {
-    const name = window.prompt('编辑模板名称', preset.name)
-    if (!name) return
-    const summary = window.prompt('编辑模板摘要', preset.summary)
-    if (summary === null) return
-    const prompt = window.prompt('编辑完整提示词', preset.prompt_text)
-    if (prompt === null) return
+    const result = await presetFormDialog.edit({
+      title: '编辑个人模板',
+      mode: 'edit',
+      initial: {
+        name: preset.name,
+        summary: preset.summary,
+        prompt_text: preset.prompt_text,
+      },
+    })
+    if (!result) return
     await updatePromptPreset(preset.id, {
-      name,
-      summary,
-      prompt_text: prompt,
+      name: result.name,
+      summary: result.summary,
+      prompt_text: result.prompt_text,
       discipline: preset.discipline ?? undefined,
     })
     pushNotice({ title: '个人模板已更新' })
@@ -271,13 +284,19 @@ export function ImageEditorPage() {
     await invalidate()
   }
 
-  function handleDuplicateFromSelected() {
+  async function handleDuplicateFromSelected() {
     if (!selectedVersion || !detailQuery.data) {
       pushNotice({ title: '请先选中一个版本' })
       return
     }
-    const title =
-      window.prompt('新图片项标题', `${detailQuery.data.image_item.title} - 副本`) ?? undefined
+    const title = await inputDialog.prompt({
+      title: '复制为新图片项起点',
+      message: '会在当前 Owner 下新建一个图片项，并以选中版本为新版本树的根。',
+      defaultValue: `${detailQuery.data.image_item.title} - 副本`,
+      placeholder: '新图片项标题',
+      confirmLabel: '复制',
+    })
+    if (!title) return
     duplicateMutation.mutate({ versionId: selectedVersion.id, title })
   }
 
