@@ -176,45 +176,57 @@ a {
 .landing-shell {
   min-height: calc(100vh - 32px);
   display: grid;
-  grid-template-columns: 1.18fr 0.82fr;
-  gap: 16px;
+  grid-template-columns: 0.42fr 0.58fr;
+  grid-template-rows: auto 1fr;
+  gap: 12px;
 }
 
-.landing-copy,
+.landing-topbar {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.6rem 1.1rem;
+}
+
+.landing-topbar-left {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.landing-topbar-title {
+  font-size: 1.05rem;
+  font-weight: 600;
+}
+
 .landing-entry,
 .recent-panel {
-  padding: 1.15rem 1.3rem;
+  padding: 1.1rem 1.2rem;
+  min-height: 0;
+  overflow: auto;
 }
 
-.recent-panel {
-  grid-column: 1 / -1;
+.recent-panel h2,
+.landing-entry h2 {
+  margin: 0 0 0.25rem;
+  font-size: 1.05rem;
 }
 
-.landing-copy h1,
+.recent-panel > .muted {
+  margin-bottom: 0.8rem;
+}
+
 .workspace-topbar h1 {
   margin: 0.3rem 0 0.45rem;
   font-size: clamp(1.6rem, 2.2vw, 2.1rem);
   line-height: 1.15;
 }
 
-.landing-features {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.7rem;
-  margin-top: 1.4rem;
-}
-
-.landing-features div,
 .status-pill,
 .topbar-chip,
 .task-badge {
   border-radius: var(--radius-pill);
-}
-
-.landing-features div {
-  padding: 0.72rem 1rem;
-  background: var(--surface-hover);
-  color: var(--text-muted);
 }
 
 .stack-form {

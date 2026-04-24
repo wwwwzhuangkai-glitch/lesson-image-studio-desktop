@@ -55,20 +55,29 @@ export function OwnerEntryPage() {
 
   return (
     <div className="landing-shell">
-      <section className="landing-copy panel">
-        <div className="panel-heading">
-          <div className="eyebrow">Lesson Image Studio</div>
-          <AppTopbar />
+      <header className="landing-topbar panel">
+        <div className="landing-topbar-left">
+          <span className="eyebrow">Lesson Image Studio</span>
+          <span className="landing-topbar-title">教研画图工作台</span>
         </div>
-        <h1>教研画图工作台</h1>
-        <p>
-          围绕题目 ID、知识素材 ID 或临时其它模式，管理多图、版本树、异步改图任务和定稿结果。
-        </p>
-        <div className="landing-features">
-          <div>多图总览</div>
-          <div>版本树改图</div>
-          <div>异步任务中心</div>
-          <div>模板沉淀</div>
+        <AppTopbar />
+      </header>
+
+      <section className="panel recent-panel">
+        <h2>最近打开</h2>
+        <p className="muted">回到之前的工作对象继续改图</p>
+        <div className="recent-owner-list">
+          {(recentQuery.data ?? []).map((owner) => (
+            <button key={owner.id} className="recent-owner-card" onClick={() => navigate(`/owners/${owner.id}`)}>
+              <strong>{owner.local_title || owner.owner_id}</strong>
+              <span>
+                {owner.owner_type} · {owner.owner_id}
+              </span>
+            </button>
+          ))}
+          {!recentQuery.data?.length && !recentQuery.isLoading ? (
+            <div className="empty-mini-card">还没有最近打开的 Owner。</div>
+          ) : null}
         </div>
       </section>
 
@@ -111,28 +120,6 @@ export function OwnerEntryPage() {
             {mutation.isPending ? '正在打开…' : '进入工作台'}
           </button>
         </form>
-      </section>
-
-      <section className="panel recent-panel">
-        <div className="panel-heading">
-          <div>
-            <h2>最近打开</h2>
-            <p>老师可以随时回到之前的工作对象继续改图。</p>
-          </div>
-        </div>
-        <div className="recent-owner-list">
-          {(recentQuery.data ?? []).map((owner) => (
-            <button key={owner.id} className="recent-owner-card" onClick={() => navigate(`/owners/${owner.id}`)}>
-              <strong>{owner.local_title || owner.owner_id}</strong>
-              <span>
-                {owner.owner_type} · {owner.owner_id}
-              </span>
-            </button>
-          ))}
-          {!recentQuery.data?.length && !recentQuery.isLoading ? (
-            <div className="empty-mini-card">还没有最近打开的 Owner。</div>
-          ) : null}
-        </div>
       </section>
     </div>
   )
