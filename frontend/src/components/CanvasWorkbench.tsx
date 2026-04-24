@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
+import type { ReactNode } from 'react'
 import type { KonvaEventObject } from 'konva/lib/Node'
-import { Group, Image as KonvaImage, Layer, Line, Rect, Stage } from 'react-konva'
+import { Image as KonvaImage, Layer, Rect, Stage } from 'react-konva'
 
 import { useImageElement } from '../hooks/useImageElement'
 import { useTheme } from '../hooks/useTheme'
@@ -13,28 +14,31 @@ interface RectGeometry {
 }
 
 interface CanvasWorkbenchProps {
-  imageUrl: string | null
-  compareImageUrl?: string | null
+  baseImageUrl: string | null
+  resultImageUrl?: string | null
+  resultEmptyLabel?: string
   selection: RectGeometry | null
   onSelectionChange: (next: RectGeometry | null) => void
   enableSelection: boolean
   onSelectionModeChange: (next: boolean) => void
 }
 
+type BackgroundMode = 'checker' | 'solid'
+
 export function CanvasWorkbench({
-  imageUrl,
-  compareImageUrl,
+  baseImageUrl,
+  resultImageUrl,
+  resultEmptyLabel = '还没有基于当前版本的结果图。',
   selection,
   onSelectionChange,
   enableSelection,
   onSelectionModeChange,
 }: CanvasWorkbenchProps) {
-  const image = useImageElement(imageUrl)
-  const compareImage = useImageElement(compareImageUrl ?? null)
+  const image = useImageElement(baseImageUrl)
   const [draft, setDraft] = useState<RectGeometry | null>(null)
   const [startPoint, setStartPoint] = useState<{ x: number; y: number } | null>(null)
-  const [split, setSplit] = useState(0.5)
-  const [compareEnabled, setCompareEnabled] = useState(true)
+  const [showSelection, setShowSelection] = useState(true)
+  const [backgroundMode, setBackgroundMode] = useState<BackgroundMode>('checker')
   const { themeMode, themeVariant } = useTheme()
   const accent = useMemo(() => {
     if (typeof window === 'undefined') return '#2b6cb0'
@@ -53,8 +57,9 @@ export function CanvasWorkbench({
     if (!image) {
       return null
     }
-    const maxWidth = 760
-    const scale = Math.min(1, maxWidth / image.width)
+    const maxWidth = 620
+    const maxHeight = 430
+    const scale = Math.min(1, maxWidth / image.width, maxHeight / image.height)
     return {
       width: Math.round(image.width * scale),
       height: Math.round(image.height * scale),
@@ -62,12 +67,22 @@ export function CanvasWorkbench({
     }
   }, [image])
 
-  const activeRect = draft ?? selection
+  const activeRect = showSelection ? draft ?? selection : null
+  const toggleBackground = () => setBackgroundMode((value) => (value === 'checker' ? 'solid' : 'checker'))
 
   if (!image || !dimensions) {
     return (
-      <div className="canvas-empty">
-        <p>这张图片还没有可预览的内容。</p>
+      <div className="dual-image-workbench">
+        <ImagePane title="基准图" backgroundMode={backgroundMode} onToggleBackground={toggleBackground}>
+          <div className="canvas-empty compact">
+            <p>左栏选中版本后会显示基准图。</p>
+          </div>
+        </ImagePane>
+        <ImagePane title="结果图" backgroundMode={backgroundMode}>
+          <div className="canvas-empty compact">
+            <p>{resultEmptyLabel}</p>
+          </div>
+        </ImagePane>
       </div>
     )
   }
@@ -120,111 +135,102 @@ export function CanvasWorkbench({
   }
 
   return (
-    <div className="canvas-shell">
-      <div className="canvas-toolbar">
-        <div className="canvas-toolbar-group">
-          {compareImage ? (
-            <button
-              className={`ghost-button small ${compareEnabled ? 'is-active' : ''}`}
-              onClick={() => setCompareEnabled((value) => !value)}
-            >
-              {compareEnabled ? '关闭对比' : '前后对比'}
-            </button>
-          ) : null}
+    <div className="dual-image-workbench">
+      <ImagePane
+        title="基准图"
+        meta={`${image.width} × ${image.height}`}
+        backgroundMode={backgroundMode}
+        onToggleBackground={toggleBackground}
+      >
+        <div className="canvas-toolbar compact">
           <button
             className={`ghost-button small ${enableSelection ? 'is-active' : ''}`}
             onClick={() => onSelectionModeChange(!enableSelection)}
           >
             {enableSelection ? '结束框选' : '局部框选'}
           </button>
-          <button
-            className="ghost-button small"
-            disabled={!selection}
-            onClick={() => onSelectionChange(null)}
-          >
+          <button className="ghost-button small" disabled={!selection} onClick={() => onSelectionChange(null)}>
             清除框选
           </button>
+          <button className="ghost-button small" disabled={!selection} onClick={() => setShowSelection((value) => !value)}>
+            {showSelection ? '隐藏选区' : '显示选区'}
+          </button>
+          {selection ? <span className="canvas-toolbar-copy">选区 {selection.width} × {selection.height}</span> : null}
         </div>
 
-        <div className="canvas-toolbar-copy">
-          <span>
-            {image.width} × {image.height}
-          </span>
-          {selection ? (
-            <span>
-              选区 {selection.width} × {selection.height}
-            </span>
-          ) : null}
-        </div>
-      </div>
-
-      {compareImage && compareEnabled ? (
-        <label className="compare-slider">
-          <span>前后对比滑杆</span>
-          <input
-            type="range"
-            min="0"
-            max="100"
-            value={split * 100}
-            onChange={(event) => setSplit(Number(event.target.value) / 100)}
-          />
-        </label>
-      ) : null}
-
-      <Stage
-        width={dimensions.width}
-        height={dimensions.height}
-        onMouseDown={handleMouseDown}
-        onMouseMove={handleMouseMove}
-        onMouseUp={handleMouseUp}
-        className="canvas-stage"
-      >
-        {compareImage && compareEnabled ? (
-          <Layer>
-            <KonvaImage image={compareImage} width={dimensions.width} height={dimensions.height} />
-          </Layer>
-        ) : null}
-
-        <Layer>
-          {compareImage && compareEnabled ? (
-            <Group
-              clipX={0}
-              clipY={0}
-              clipWidth={dimensions.width * split}
-              clipHeight={dimensions.height}
-            >
+        <div className={`image-stage-wrap ${backgroundMode}`}>
+          <Stage
+            width={dimensions.width}
+            height={dimensions.height}
+            onMouseDown={handleMouseDown}
+            onMouseMove={handleMouseMove}
+            onMouseUp={handleMouseUp}
+            className="canvas-stage"
+          >
+            <Layer>
               <KonvaImage image={image} width={dimensions.width} height={dimensions.height} />
-            </Group>
-          ) : (
-            <KonvaImage image={image} width={dimensions.width} height={dimensions.height} />
-          )}
-        </Layer>
+            </Layer>
 
-        {compareImage && compareEnabled ? (
-          <Layer>
-            <Line
-              points={[dimensions.width * split, 0, dimensions.width * split, dimensions.height]}
-              stroke={accent}
-              strokeWidth={2}
-            />
-          </Layer>
-        ) : null}
+            <Layer>
+              {activeRect ? (
+                <Rect
+                  x={activeRect.x * dimensions.scale}
+                  y={activeRect.y * dimensions.scale}
+                  width={activeRect.width * dimensions.scale}
+                  height={activeRect.height * dimensions.scale}
+                  stroke={accent}
+                  strokeWidth={2}
+                  dash={[6, 4]}
+                  fill={accentFill}
+                />
+              ) : null}
+            </Layer>
+          </Stage>
+        </div>
+      </ImagePane>
 
-        <Layer>
-          {activeRect ? (
-            <Rect
-              x={activeRect.x * dimensions.scale}
-              y={activeRect.y * dimensions.scale}
-              width={activeRect.width * dimensions.scale}
-              height={activeRect.height * dimensions.scale}
-              stroke={accent}
-              strokeWidth={2}
-              dash={[8, 6]}
-              fill={accentFill}
-            />
-          ) : null}
-        </Layer>
-      </Stage>
+      <ImagePane title="结果图" backgroundMode={backgroundMode}>
+        {resultImageUrl ? (
+          <div className={`result-image-wrap ${backgroundMode}`}>
+            <img src={resultImageUrl} alt="结果图" />
+          </div>
+        ) : (
+          <div className="canvas-empty compact">
+            <p>{resultEmptyLabel}</p>
+          </div>
+        )}
+      </ImagePane>
     </div>
+  )
+}
+
+function ImagePane({
+  title,
+  meta,
+  backgroundMode,
+  onToggleBackground,
+  children,
+}: {
+  title: string
+  meta?: string
+  backgroundMode: BackgroundMode
+  onToggleBackground?: () => void
+  children: ReactNode
+}) {
+  return (
+    <section className="image-compare-pane">
+      <div className="image-pane-header">
+        <div>
+          <span className="field-label">{title}</span>
+          {meta ? <strong>{meta}</strong> : null}
+        </div>
+        {onToggleBackground ? (
+          <button className="ghost-button small" onClick={onToggleBackground}>
+            {backgroundMode === 'checker' ? '纯色底' : '棋盘格'}
+          </button>
+        ) : null}
+      </div>
+      {children}
+    </section>
   )
 }

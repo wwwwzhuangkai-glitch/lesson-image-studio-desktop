@@ -11,6 +11,7 @@ import {
   duplicateVersionToImageItem,
   exportVersion,
   finalizeVersion,
+  getAppSettings,
   getImageItem,
   getVersionTree,
   importImage,
@@ -18,7 +19,7 @@ import {
   unfinalizeVersion,
 } from '../lib/api'
 import { useUiStore } from '../store/uiStore'
-import type { Quality, Version } from '../types/api'
+import type { Job, ProviderId, Quality, Version } from '../types/api'
 import { AppTopbar } from './AppTopbar'
 import { CanvasWorkbench } from './CanvasWorkbench'
 import { useInputDialog } from './InputDialog'
@@ -68,6 +69,12 @@ export function ImageEditorPage() {
     refetchInterval: 3000,
   })
 
+  const settingsQuery = useQuery({
+    queryKey: ['app-settings'],
+    queryFn: getAppSettings,
+    staleTime: Infinity,
+  })
+
   useEffect(() => {
     if (detailQuery.data?.image_item.owner_id) {
       setCurrentOwnerId(detailQuery.data.image_item.owner_id)
@@ -98,15 +105,13 @@ export function ImageEditorPage() {
     () => versions.find((version) => version.id === selectedVersionId) ?? null,
     [selectedVersionId, versions],
   )
-  const compareVersion = useMemo(() => {
-    if (!selectedVersion) {
-      return null
-    }
-    return versions.find((version) => version.id === selectedVersion.parent_version_id) ?? null
-  }, [selectedVersion, versions])
-
   const hasVersions = Boolean(versions.length)
   const selectedInputSize = selectedVersion ? `${selectedVersion.width}x${selectedVersion.height}` : 'auto'
+  const resultVersion = useMemo(
+    () => pickResultVersion(selectedVersion, versions, detailQuery.data?.recent_jobs ?? []),
+    [detailQuery.data?.recent_jobs, selectedVersion, versions],
+  )
+  const providerLabel = getProviderLabel(settingsQuery.data?.default_provider ?? 'openai_official')
 
   const invalidate = async () => {
     await queryClient.invalidateQueries({ queryKey: ['image-item', itemId] })
@@ -271,6 +276,13 @@ export function ImageEditorPage() {
           />
         </div>
 
+        <div className="sidebar-context-card editor-selection-card">
+          <div className="sidebar-section-heading">当前选中</div>
+          <h2>{selectedVersion ? selectedVersion.prompt_summary || selectedVersion.file_name : '暂无版本'}</h2>
+          <p>{selectedVersion ? `${selectedVersion.width} × ${selectedVersion.height}` : '导入或生成后形成第一版'}</p>
+          {selectedVersion?.is_current_final ? <span className="status-pill status-succeeded">当前定稿</span> : null}
+        </div>
+
         <div className="sidebar-bottom-actions">
           <button className="sidebar-tool-button" onClick={() => openUtilityDrawer('tasks')}>
             <span>任务中心</span>
@@ -301,187 +313,192 @@ export function ImageEditorPage() {
           </div>
         </header>
 
-        <div className="editor-stage-grid">
-          <section className="editor-canvas-column">
-            <div className="panel editor-canvas-panel">
-              {!hasVersions ? (
-                <div className="canvas-empty-state">
-                  <div>
-                    <div className="eyebrow">空图片项</div>
-                    <h2>先导入底图，或者直接发起 AI 生图</h2>
-                    <p>这张图片项还没有版本，导入后会形成根版本；也可以直接让 `gpt-image-2` 生成第一版。</p>
-                  </div>
-                  <label className="primary-button upload-button">
-                    导入底图
-                    <input hidden type="file" accept="image/*" onChange={handleRootImport} />
-                  </label>
+        <div className="editor-stage-grid editor-dual-stage">
+          <section className="panel editor-canvas-panel dual-canvas-panel">
+            {!hasVersions ? (
+              <div className="canvas-empty-state">
+                <div>
+                  <div className="eyebrow">空图片项</div>
+                  <h2>先导入底图，或者直接发起 AI 生图</h2>
+                  <p>这张图片项还没有版本，导入后会形成根版本；也可以直接生成第一版。</p>
                 </div>
-              ) : (
-                <CanvasWorkbench
-                  imageUrl={selectedVersion?.file_url ?? null}
-                  compareImageUrl={compareVersion?.file_url ?? null}
-                  selection={selectionRect}
-                  onSelectionChange={setSelectionRect}
-                  enableSelection={selectionEnabled}
-                  onSelectionModeChange={setSelectionEnabled}
-                />
-              )}
-            </div>
+              </div>
+            ) : (
+              <CanvasWorkbench
+                baseImageUrl={selectedVersion?.file_url ?? null}
+                resultImageUrl={resultVersion?.file_url ?? null}
+                selection={selectionRect}
+                onSelectionChange={setSelectionRect}
+                enableSelection={selectionEnabled}
+                onSelectionModeChange={setSelectionEnabled}
+              />
+            )}
           </section>
 
-          <aside className="panel inspector-panel">
-            <div className="inspector-scroll">
-              <section className="inspector-section">
-                <div className="eyebrow">当前上下文</div>
-                <h2>{selectedVersion ? selectedVersion.prompt_summary || selectedVersion.file_name : '准备生成第一版'}</h2>
-                <p className="muted">
-                  {hasVersions
-                    ? '发起改图前，必须显式选中当前图片项内的某个版本。'
-                    : '空图片项可以直接发起 AI 生图，也可以先导入底图。'}
-                </p>
-              </section>
+          <section className="panel editor-control-console">
+            <div className="console-group prompt-console">
+              <div className="console-heading">
+                <span className="field-label">提示词</span>
+                <button className="ghost-button small" onClick={openTemplatesDrawer}>
+                  打开模板抽屉
+                </button>
+              </div>
+              <textarea
+                value={promptText}
+                onChange={(event) => setPromptText(event.target.value)}
+                placeholder={
+                  hasVersions
+                    ? '描述你希望怎么改图，老师会直接看到实际提交的提示词。'
+                    : '例如：生成一张高中物理牛顿第二定律受力分析示意图，适合课件讲解'
+                }
+              />
+            </div>
 
-              <section className="inspector-section">
-                <div className="field-label">提示词</div>
-                <textarea
-                  value={promptText}
-                  onChange={(event) => setPromptText(event.target.value)}
-                  placeholder={
-                    hasVersions
-                      ? '描述你希望怎么改图，老师会直接看到实际提交的提示词。'
-                      : '例如：生成一张高中物理牛顿第二定律受力分析示意图，适合课件讲解'
-                  }
-                />
-              </section>
-
-              <section className="inspector-section">
-                <div className="two-columns">
-                  <label>
-                    <span className="field-label">质量</span>
-                    <select value={quality} onChange={(event) => setQuality(event.target.value as Quality)}>
-                      {QUALITY_OPTIONS.map((option) => (
-                        <option key={option.value} value={option.value}>
-                          {option.label}
+            <div className="console-group params-console">
+              <div className="console-heading">
+                <span className="field-label">生成参数</span>
+                <span className="topbar-chip">{providerLabel}</span>
+              </div>
+              <div className="console-fields">
+                <label>
+                  <span className="field-label">质量</span>
+                  <select value={quality} onChange={(event) => setQuality(event.target.value as Quality)}>
+                    {QUALITY_OPTIONS.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label>
+                  <span className="field-label">{hasVersions ? '输入图规格' : '生图尺寸'}</span>
+                  {hasVersions ? (
+                    <span className="console-readout">{selectedInputSize}</span>
+                  ) : (
+                    <select
+                      value={generateSize}
+                      onChange={(event) => setGenerateSize(event.target.value as GenerateSizeOption)}
+                    >
+                      {GENERATE_SIZE_OPTIONS.map((option) => (
+                        <option key={option} value={option}>
+                          {option}
                         </option>
                       ))}
                     </select>
-                  </label>
-                  <div>
-                    <span className="field-label">{hasVersions ? '输入图规格' : '生图尺寸'}</span>
-                    {hasVersions ? (
-                      <>
-                        <div className="topbar-chip">{selectedInputSize}</div>
-                        <span className="settings-help">提交后由后端按 provider 规则归一化。</span>
-                      </>
-                    ) : (
-                      <select
-                        value={generateSize}
-                        onChange={(event) => setGenerateSize(event.target.value as GenerateSizeOption)}
-                      >
-                        {GENERATE_SIZE_OPTIONS.map((option) => (
-                          <option key={option} value={option}>
-                            {option}
-                          </option>
-                        ))}
-                      </select>
-                    )}
-                  </div>
+                  )}
+                </label>
+                <div>
+                  <span className="field-label">Mask</span>
+                  <span className="console-readout">{selectionRect ? '已框选' : '未使用'}</span>
                 </div>
-              </section>
+              </div>
+              <p className="settings-help">
+                {hasVersions
+                  ? '图改图最终规格由后端按 provider 规则归一化，提交对象永远是左栏当前选中版本。'
+                  : '生图默认 auto，不向 provider 传 size；选择预设后会显式传 size。'}
+              </p>
+            </div>
 
-              <section className="inspector-section">
-                <div className="inspector-section-heading">执行动作</div>
-                <div className="inspector-button-stack">
-                  {hasVersions ? (
+            <div className="console-group actions-console">
+              <div className="console-heading">
+                <span className="field-label">动作</span>
+              </div>
+              <div className="console-actions">
+                {hasVersions ? (
+                  <button
+                    className="primary-button"
+                    disabled={!selectedVersion || !promptText.trim() || createEditMutation.isPending}
+                    onClick={() => createEditMutation.mutate()}
+                  >
+                    发起 AI 改图
+                  </button>
+                ) : (
+                  <>
+                    <label className="ghost-button upload-button">
+                      导入底图
+                      <input hidden type="file" accept="image/*" onChange={handleRootImport} />
+                    </label>
                     <button
                       className="primary-button"
-                      disabled={!selectedVersion || !promptText.trim() || createEditMutation.isPending}
-                      onClick={() => createEditMutation.mutate()}
+                      disabled={!promptText.trim() || generateMutation.isPending}
+                      onClick={() => generateMutation.mutate()}
                     >
-                      发起 AI 改图
+                      发起 AI 生图
                     </button>
-                  ) : (
-                    <>
-                      <label className="ghost-button upload-button">
-                        导入底图
-                        <input hidden type="file" accept="image/*" onChange={handleRootImport} />
-                      </label>
-                      <button
-                        className="primary-button"
-                        disabled={!promptText.trim() || generateMutation.isPending}
-                        onClick={() => generateMutation.mutate()}
-                      >
-                        发起 AI 生图
-                      </button>
-                    </>
-                  )}
-                  <button className="ghost-button" onClick={openTemplatesDrawer}>
-                    打开模板抽屉
-                  </button>
-                </div>
-              </section>
-
-              <section className="inspector-section">
-                <div className="inspector-section-heading">定稿 / 导出 / 发布</div>
-                <div className="inspector-button-grid">
-                  <button className="ghost-button" onClick={handleFinalize} disabled={!selectedVersion}>
-                    设为当前定稿
-                  </button>
-                  <button
-                    className="ghost-button"
-                    onClick={async () => {
-                      await unfinalizeVersion(itemId)
-                      pushNotice({ title: '已取消定稿' })
-                      await invalidate()
-                    }}
-                    disabled={!currentFinalVersion}
-                  >
-                    取消定稿
-                  </button>
-                  <button className="ghost-button" onClick={() => void handleExport(currentFinalVersion)}>
-                    导出定稿
-                  </button>
-                  <button className="ghost-button" onClick={() => void handleExport(selectedVersion)}>
-                    导出选中
-                  </button>
-                  <button className="ghost-button" onClick={() => void handlePublish(currentFinalVersion)}>
-                    发布定稿
-                  </button>
-                  <button className="ghost-button" onClick={() => void handlePublish(selectedVersion)}>
-                    发布选中
-                  </button>
-                </div>
-              </section>
-
-              <section className="inspector-section">
-                <div className="inspector-section-heading">版本动作</div>
-                <div className="inspector-button-stack">
-                  <button
-                    className="ghost-button"
-                    disabled={!selectedVersion || duplicateMutation.isPending}
-                    onClick={handleDuplicateFromSelected}
-                  >
-                    复制为新图片项起点
-                  </button>
-                  <button
-                    className="ghost-button danger"
-                    disabled={!selectedVersion || selectedVersion.child_count > 0 || selectedVersion.is_current_final}
-                    onClick={async () => {
-                      if (!selectedVersion) return
-                      await deleteVersion(selectedVersion.id)
-                      pushNotice({ title: '版本已移入回收站' })
-                      await invalidate()
-                    }}
-                  >
-                    删除选中版本
-                  </button>
-                </div>
-              </section>
-
+                  </>
+                )}
+                <button className="ghost-button" onClick={handleFinalize} disabled={!selectedVersion}>
+                  设为当前定稿
+                </button>
+                <button className="ghost-button" onClick={() => void handleExport(selectedVersion)}>
+                  导出选中
+                </button>
+                <button className="ghost-button" onClick={() => void handlePublish(selectedVersion)}>
+                  发布选中
+                </button>
+                <button className="ghost-button" onClick={() => void handleExport(currentFinalVersion)}>
+                  导出定稿
+                </button>
+                <button className="ghost-button" onClick={() => void handlePublish(currentFinalVersion)}>
+                  发布定稿
+                </button>
+                <button
+                  className="ghost-button"
+                  onClick={async () => {
+                    await unfinalizeVersion(itemId)
+                    pushNotice({ title: '已取消定稿' })
+                    await invalidate()
+                  }}
+                  disabled={!currentFinalVersion}
+                >
+                  取消定稿
+                </button>
+                <button
+                  className="ghost-button"
+                  disabled={!selectedVersion || duplicateMutation.isPending}
+                  onClick={handleDuplicateFromSelected}
+                >
+                  复制为新图片项起点
+                </button>
+                <button
+                  className="ghost-button danger"
+                  disabled={!selectedVersion || selectedVersion.child_count > 0 || selectedVersion.is_current_final}
+                  onClick={async () => {
+                    if (!selectedVersion) return
+                    await deleteVersion(selectedVersion.id)
+                    pushNotice({ title: '版本已移入回收站' })
+                    await invalidate()
+                  }}
+                >
+                  删除选中版本
+                </button>
+              </div>
             </div>
-          </aside>
+          </section>
         </div>
       </section>
     </div>
   )
+}
+
+function pickResultVersion(selectedVersion: Version | null, versions: Version[], recentJobs: Job[]) {
+  if (!selectedVersion) {
+    return null
+  }
+  const latestJobOutput = recentJobs
+    .filter((job) => job.base_version_id === selectedVersion.id && job.output_version)
+    .sort((left, right) => new Date(right.created_at).getTime() - new Date(left.created_at).getTime())[0]?.output_version
+  if (latestJobOutput) {
+    return latestJobOutput
+  }
+  return versions
+    .filter((version) => version.parent_version_id === selectedVersion.id)
+    .sort((left, right) => new Date(right.created_at).getTime() - new Date(left.created_at).getTime())[0] ?? null
+}
+
+function getProviderLabel(providerId: ProviderId) {
+  if (providerId === 'tal_gpt_image_2') {
+    return 'TAL gpt-image-2'
+  }
+  return 'OpenAI 官方'
 }
