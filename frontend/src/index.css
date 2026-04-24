@@ -700,17 +700,13 @@ a {
   overflow: hidden;
 }
 
-.image-compare-pane.has-toolbar {
-  grid-template-rows: auto auto minmax(0, 1fr);
-}
-
 .image-pane-header {
-  min-height: 56px;
+  height: 72px;
   padding: 0.72rem 0.78rem 0.72rem 0.85rem;
   border-bottom: 1px solid var(--divider);
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
-  justify-content: space-between;
   gap: 0.75rem;
 }
 
@@ -722,31 +718,23 @@ a {
   display: block;
   margin-top: 0.2rem;
   font-size: 0.94rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .image-pane-actions {
   display: flex;
   justify-content: flex-end;
   align-items: center;
-  flex-wrap: wrap;
-  gap: 0.5rem;
+  flex-wrap: nowrap;
+  gap: 0.42rem;
 }
 
-.image-pane-toolbar {
-  min-height: 48px;
-  padding: 0.45rem 0.78rem;
-  border-bottom: 1px solid var(--divider);
-  background: var(--surface-hover);
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-}
-
-.image-pane-toolbar .ghost-button.small {
-  padding: 0.42rem 0.68rem;
+.image-pane-actions .ghost-button.small {
+  padding: 0.42rem 0.66rem;
   font-size: 0.82rem;
+  white-space: nowrap;
 }
 
 .canvas-toolbar {

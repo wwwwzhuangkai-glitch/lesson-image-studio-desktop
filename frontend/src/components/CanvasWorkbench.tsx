@@ -144,23 +144,25 @@ export function CanvasWorkbench({
         className={`ghost-button small ${enableSelection ? 'is-active' : ''}`}
         onClick={() => onSelectionModeChange(!enableSelection)}
       >
-        {enableSelection ? '结束框选' : '局部框选'}
+        {enableSelection ? '结束' : '框选'}
       </button>
       <button className="ghost-button small" disabled={!selection} onClick={() => onSelectionChange(null)}>
-        清除框选
+        清除
       </button>
       <button className="ghost-button small" disabled={!selection} onClick={() => setShowSelection((value) => !value)}>
-        {showSelection ? '隐藏选区' : '显示选区'}
+        {showSelection ? '隐藏' : '显示'}
       </button>
-      {selection ? <span className="canvas-toolbar-copy">选区 {selection.width} × {selection.height}</span> : null}
     </>
   )
+  const baseMeta = selection
+    ? `${image.width} × ${image.height} / 选区 ${selection.width} × ${selection.height}`
+    : `${image.width} × ${image.height}`
 
   return (
     <div className="dual-image-workbench">
       <ImagePane
         title="基准图"
-        meta={`${image.width} × ${image.height}`}
+        meta={baseMeta}
         backgroundMode={backgroundMode}
         onToggleBackground={toggleBackground}
         actions={selectionActions}
@@ -227,13 +229,14 @@ function ImagePane({
   children: ReactNode
 }) {
   return (
-    <section className={`image-compare-pane ${actions ? 'has-toolbar' : ''}`}>
+    <section className="image-compare-pane">
       <div className="image-pane-header">
         <div className="image-pane-title">
           <span className="field-label">{title}</span>
           {meta ? <strong>{meta}</strong> : null}
         </div>
         <div className="image-pane-actions">
+          {actions}
           {onToggleBackground ? (
             <button className="ghost-button small" onClick={onToggleBackground}>
               {backgroundMode === 'checker' ? '纯色底' : '棋盘格'}
@@ -241,7 +244,6 @@ function ImagePane({
           ) : null}
         </div>
       </div>
-      {actions ? <div className="image-pane-toolbar">{actions}</div> : null}
       {children}
     </section>
   )
