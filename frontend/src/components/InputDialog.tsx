@@ -66,7 +66,8 @@ export function InputDialogRoot() {
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pending])
 
   if (!pending) return null
 

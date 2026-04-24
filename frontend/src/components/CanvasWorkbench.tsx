@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { ReactNode } from 'react'
 import type { KonvaEventObject } from 'konva/lib/Node'
 import { Image as KonvaImage, Layer, Rect, Stage } from 'react-konva'
@@ -34,7 +34,9 @@ export function CanvasWorkbench({
   enableSelection,
   onSelectionModeChange,
 }: CanvasWorkbenchProps) {
-  const image = useImageElement(baseImageUrl)
+  const { image, error: baseImageError } = useImageElement(baseImageUrl)
+  const [resultErrorUrl, setResultErrorUrl] = useState<string | null>(null)
+  const resultError = resultImageUrl !== null && resultImageUrl === resultErrorUrl
   const [draft, setDraft] = useState<RectGeometry | null>(null)
   const [startPoint, setStartPoint] = useState<{ x: number; y: number } | null>(null)
   const [showSelection, setShowSelection] = useState(true)
@@ -53,19 +55,46 @@ export function CanvasWorkbench({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [themeMode, themeVariant])
 
+  const [containerSize, setContainerSize] = useState<{ width: number; height: number }>({ width: 620, height: 430 })
+  const containerRef = useCallback((node: HTMLDivElement | null) => {
+    if (!node) return
+    const update = () => {
+      const { width, height } = node.getBoundingClientRect()
+      const pad = 32
+      setContainerSize({ width: Math.max(100, width - pad), height: Math.max(100, height - pad) })
+    }
+    update()
+    const observer = new ResizeObserver(update)
+    observer.observe(node)
+    return () => observer.disconnect()
+  }, [])
+
+  useEffect(() => {
+    // re-measure on window resize as a fallback
+    const handler = () => {
+      const node = document.querySelector('.base-image-body') as HTMLDivElement | null
+      if (!node) return
+      const { width, height } = node.getBoundingClientRect()
+      const pad = 32
+      setContainerSize({ width: Math.max(100, width - pad), height: Math.max(100, height - pad) })
+    }
+    window.addEventListener('resize', handler)
+    return () => window.removeEventListener('resize', handler)
+  }, [])
+
   const dimensions = useMemo(() => {
     if (!image) {
       return null
     }
-    const maxWidth = 620
-    const maxHeight = 430
+    const maxWidth = containerSize.width
+    const maxHeight = containerSize.height
     const scale = Math.min(1, maxWidth / image.width, maxHeight / image.height)
     return {
       width: Math.round(image.width * scale),
       height: Math.round(image.height * scale),
       scale,
     }
-  }, [image])
+  }, [image, containerSize])
 
   const activeRect = showSelection ? draft ?? selection : null
   const toggleBackground = () => setBackgroundMode((value) => (value === 'checker' ? 'solid' : 'checker'))
@@ -76,7 +105,7 @@ export function CanvasWorkbench({
         <ImagePane title="基准图" backgroundMode={backgroundMode} onToggleBackground={toggleBackground}>
           <div className={`image-pane-body ${backgroundMode}`}>
             <div className="canvas-empty compact">
-              <p>左栏选中版本后会显示基准图。</p>
+              <p>{baseImageError ? '基准图加载失败，请检查图片文件。' : '左栏选中版本后会显示基准图。'}</p>
             </div>
           </div>
         </ImagePane>
@@ -167,7 +196,7 @@ export function CanvasWorkbench({
         onToggleBackground={toggleBackground}
         actions={selectionActions}
       >
-        <div className={`image-pane-body ${backgroundMode} ${enableSelection ? 'is-selecting' : ''}`}>
+        <div ref={containerRef} className={`image-pane-body base-image-body ${backgroundMode} ${enableSelection ? 'is-selecting' : ''}`}>
           <Stage
             width={dimensions.width}
             height={dimensions.height}
@@ -200,11 +229,11 @@ export function CanvasWorkbench({
 
       <ImagePane title="结果图" backgroundMode={backgroundMode} onToggleBackground={toggleBackground}>
         <div className={`image-pane-body ${backgroundMode}`}>
-          {resultImageUrl ? (
-            <img className="result-image" src={resultImageUrl} alt="结果图" />
+          {resultImageUrl && !resultError ? (
+            <img className="result-image" src={resultImageUrl} alt="结果图" onError={() => setResultErrorUrl(resultImageUrl)} />
           ) : (
             <div className="canvas-empty compact">
-              <p>{resultEmptyLabel}</p>
+              <p>{resultError ? '结果图加载失败，请检查图片文件。' : resultEmptyLabel}</p>
             </div>
           )}
         </div>

@@ -1,10 +1,13 @@
 import { useEffect, useState } from 'react'
 
-export function useImageElement(src: string | null) {
+export function useImageElement(src: string | null): { image: HTMLImageElement | null; error: boolean } {
   const [loaded, setLoaded] = useState<{ src: string; image: HTMLImageElement } | null>(null)
+  const [error, setError] = useState(false)
 
   useEffect(() => {
     if (!src) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setError(false)
       return
     }
 
@@ -14,6 +17,13 @@ export function useImageElement(src: string | null) {
     img.onload = () => {
       if (!cancelled) {
         setLoaded({ src, image: img })
+        setError(false)
+      }
+    }
+    img.onerror = () => {
+      if (!cancelled) {
+        setLoaded(null)
+        setError(true)
       }
     }
     img.src = src
@@ -21,8 +31,10 @@ export function useImageElement(src: string | null) {
     return () => {
       cancelled = true
       img.onload = null
+      img.onerror = null
     }
   }, [src])
 
-  return loaded?.src === src ? loaded.image : null
+  const image = loaded?.src === src ? loaded.image : null
+  return { image, error }
 }

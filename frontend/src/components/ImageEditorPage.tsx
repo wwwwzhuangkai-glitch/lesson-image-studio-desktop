@@ -54,6 +54,7 @@ export function ImageEditorPage() {
   const [userSelectedVersionId, setUserSelectedVersionId] = useState<string | null>(null)
   const [selectionRect, setSelectionRect] = useState<{ x: number; y: number; width: number; height: number } | null>(null)
   const [selectionEnabled, setSelectionEnabled] = useState(false)
+  const [pendingAction, setPendingAction] = useState<string | null>(null)
 
   const detailQuery = useQuery({
     queryKey: ['image-item', itemId],
@@ -200,37 +201,85 @@ export function ImageEditorPage() {
   }
 
   async function handleFinalize() {
-    if (!selectedVersion) {
-      pushNotice({ title: '请先选中一个版本' })
-      return
+    if (!selectedVersion || pendingAction) return
+    setPendingAction('finalize')
+    try {
+      await finalizeVersion(itemId, selectedVersion.id)
+      pushNotice({ title: '已设为当前定稿' })
+      await invalidate()
+    } catch (error) {
+      pushNotice({ title: '定稿失败', body: (error as Error).message })
+    } finally {
+      setPendingAction(null)
     }
-    await finalizeVersion(itemId, selectedVersion.id)
-    pushNotice({ title: '已设为当前定稿' })
-    await invalidate()
   }
 
-  async function handleExport(target: Version | null) {
+  async function handleExport(target: Version | null, label: string) {
     if (!target) {
       pushNotice({ title: '没有可导出的版本' })
       return
     }
-    const result = await exportVersion(target.id)
-    pushNotice({ title: '导出成功', body: result.file_url })
+    if (pendingAction) return
+    setPendingAction(label)
+    try {
+      const result = await exportVersion(target.id)
+      pushNotice({ title: '导出成功', body: result.file_url })
+    } catch (error) {
+      pushNotice({ title: '导出失败', body: (error as Error).message })
+    } finally {
+      setPendingAction(null)
+    }
   }
 
-  async function handlePublish(target: Version | null) {
+  async function handlePublish(target: Version | null, label: string) {
     if (!target || !detailQuery.data) {
       pushNotice({ title: '没有可发布的版本' })
       return
     }
-    await publishPlaceholder({
-      publish_scope: 'image_item',
-      owner_id: detailQuery.data.image_item.owner_id,
-      image_item_id: itemId,
-      version_id: target.id,
-    })
-    pushNotice({ title: '已记录发布占位' })
-    await invalidate()
+    if (pendingAction) return
+    setPendingAction(label)
+    try {
+      await publishPlaceholder({
+        publish_scope: 'image_item',
+        owner_id: detailQuery.data.image_item.owner_id,
+        image_item_id: itemId,
+        version_id: target.id,
+      })
+      pushNotice({ title: '已记录发布占位' })
+      await invalidate()
+    } catch (error) {
+      pushNotice({ title: '发布失败', body: (error as Error).message })
+    } finally {
+      setPendingAction(null)
+    }
+  }
+
+  async function handleUnfinalize() {
+    if (!currentFinalVersion || pendingAction) return
+    setPendingAction('unfinalize')
+    try {
+      await unfinalizeVersion(itemId)
+      pushNotice({ title: '已取消定稿' })
+      await invalidate()
+    } catch (error) {
+      pushNotice({ title: '取消定稿失败', body: (error as Error).message })
+    } finally {
+      setPendingAction(null)
+    }
+  }
+
+  async function handleDeleteVersion() {
+    if (!selectedVersion || pendingAction) return
+    setPendingAction('delete')
+    try {
+      await deleteVersion(selectedVersion.id)
+      pushNotice({ title: '版本已移入回收站' })
+      await invalidate()
+    } catch (error) {
+      pushNotice({ title: '删除失败', body: (error as Error).message })
+    } finally {
+      setPendingAction(null)
+    }
   }
 
   async function handleDuplicateFromSelected() {
@@ -427,48 +476,39 @@ export function ImageEditorPage() {
                     </button>
                   </>
                 )}
-                <button className="ghost-button" onClick={handleFinalize} disabled={!selectedVersion}>
+                <button className="ghost-button" onClick={handleFinalize} disabled={!selectedVersion || pendingAction !== null}>
                   设为当前定稿
                 </button>
-                <button className="ghost-button" onClick={() => void handleExport(selectedVersion)}>
+                <button className="ghost-button" onClick={() => void handleExport(selectedVersion, 'export-selected')} disabled={pendingAction !== null}>
                   导出选中
                 </button>
-                <button className="ghost-button" onClick={() => void handlePublish(selectedVersion)}>
+                <button className="ghost-button" onClick={() => void handlePublish(selectedVersion, 'publish-selected')} disabled={pendingAction !== null}>
                   发布选中
                 </button>
-                <button className="ghost-button" onClick={() => void handleExport(currentFinalVersion)}>
+                <button className="ghost-button" onClick={() => void handleExport(currentFinalVersion, 'export-final')} disabled={pendingAction !== null}>
                   导出定稿
                 </button>
-                <button className="ghost-button" onClick={() => void handlePublish(currentFinalVersion)}>
+                <button className="ghost-button" onClick={() => void handlePublish(currentFinalVersion, 'publish-final')} disabled={pendingAction !== null}>
                   发布定稿
                 </button>
                 <button
                   className="ghost-button"
-                  onClick={async () => {
-                    await unfinalizeVersion(itemId)
-                    pushNotice({ title: '已取消定稿' })
-                    await invalidate()
-                  }}
-                  disabled={!currentFinalVersion}
+                  onClick={handleUnfinalize}
+                  disabled={!currentFinalVersion || pendingAction !== null}
                 >
                   取消定稿
                 </button>
                 <button
                   className="ghost-button"
-                  disabled={!selectedVersion || duplicateMutation.isPending}
+                  disabled={!selectedVersion || duplicateMutation.isPending || pendingAction !== null}
                   onClick={handleDuplicateFromSelected}
                 >
                   复制为新图片项起点
                 </button>
                 <button
                   className="ghost-button danger"
-                  disabled={!selectedVersion || selectedVersion.child_count > 0 || selectedVersion.is_current_final}
-                  onClick={async () => {
-                    if (!selectedVersion) return
-                    await deleteVersion(selectedVersion.id)
-                    pushNotice({ title: '版本已移入回收站' })
-                    await invalidate()
-                  }}
+                  disabled={!selectedVersion || selectedVersion.child_count > 0 || selectedVersion.is_current_final || pendingAction !== null}
+                  onClick={handleDeleteVersion}
                 >
                   删除选中版本
                 </button>

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 
@@ -77,6 +77,7 @@ export function UtilityDrawer() {
   const inputDialog = useInputDialog()
   const presetFormDialog = usePresetFormDialog()
   const previousStatuses = useRef(new Map<string, string>())
+  const [pendingPresetOp, setPendingPresetOp] = useState(false)
 
   const jobsQuery = useQuery({
     queryKey: ['jobs', taskScope, currentOwnerId],
@@ -113,7 +114,8 @@ export function UtilityDrawer() {
   }, [jobsQuery.data, setJobIndicatorCount])
 
   useEffect(() => {
-    for (const job of jobsQuery.data ?? []) {
+    const jobs = jobsQuery.data ?? []
+    for (const job of jobs) {
       const previous = previousStatuses.current.get(job.id)
       if (previous && previous !== job.status && ['succeeded', 'failed'].includes(job.status)) {
         pushNotice({
@@ -122,6 +124,12 @@ export function UtilityDrawer() {
         })
       }
       previousStatuses.current.set(job.id, job.status)
+    }
+    const activeIds = new Set(jobs.map((j) => j.id))
+    for (const id of previousStatuses.current.keys()) {
+      if (!activeIds.has(id)) {
+        previousStatuses.current.delete(id)
+      }
     }
   }, [jobsQuery.data, pushNotice])
 
@@ -174,6 +182,7 @@ export function UtilityDrawer() {
       pushNotice({ title: '编辑页还没有可保存的提示词' })
       return
     }
+    if (pendingPresetOp) return
     const result = await presetFormDialog.edit({
       title: '保存为个人模板',
       description: '个人模板会出现在「个人模板」分组里，方便复用。',
@@ -184,30 +193,46 @@ export function UtilityDrawer() {
       },
     })
     if (!result) return
-    await createPromptPreset({
-      name: result.name,
-      summary: result.summary,
-      prompt_text: editorPromptText,
-      source_preset_id: sourcePreset?.id,
-      discipline: sourcePreset?.discipline ?? undefined,
-    })
-    pushNotice({ title: '已保存为个人模板' })
-    await queryClient.invalidateQueries({ queryKey: ['prompt-presets'] })
+    setPendingPresetOp(true)
+    try {
+      await createPromptPreset({
+        name: result.name,
+        summary: result.summary,
+        prompt_text: editorPromptText,
+        source_preset_id: sourcePreset?.id,
+        discipline: sourcePreset?.discipline ?? undefined,
+      })
+      pushNotice({ title: '已保存为个人模板' })
+      await queryClient.invalidateQueries({ queryKey: ['prompt-presets'] })
+    } catch (error) {
+      pushNotice({ title: '保存失败', body: (error as Error).message })
+    } finally {
+      setPendingPresetOp(false)
+    }
   }
 
   async function cloneSystemPreset(preset: PromptPreset) {
-    await createPromptPreset({
-      name: `${preset.name} - 我的版本`,
-      summary: preset.summary,
-      prompt_text: preset.prompt_text,
-      discipline: preset.discipline ?? undefined,
-      source_preset_id: preset.id,
-    })
-    pushNotice({ title: '系统模板已复制到个人模板' })
-    await queryClient.invalidateQueries({ queryKey: ['prompt-presets'] })
+    if (pendingPresetOp) return
+    setPendingPresetOp(true)
+    try {
+      await createPromptPreset({
+        name: `${preset.name} - 我的版本`,
+        summary: preset.summary,
+        prompt_text: preset.prompt_text,
+        discipline: preset.discipline ?? undefined,
+        source_preset_id: preset.id,
+      })
+      pushNotice({ title: '系统模板已复制到个人模板' })
+      await queryClient.invalidateQueries({ queryKey: ['prompt-presets'] })
+    } catch (error) {
+      pushNotice({ title: '复制失败', body: (error as Error).message })
+    } finally {
+      setPendingPresetOp(false)
+    }
   }
 
   async function editPersonalPreset(preset: PromptPreset) {
+    if (pendingPresetOp) return
     const result = await presetFormDialog.edit({
       title: '编辑个人模板',
       mode: 'edit',
@@ -218,30 +243,45 @@ export function UtilityDrawer() {
       },
     })
     if (!result) return
-    await updatePromptPreset(preset.id, {
-      name: result.name,
-      summary: result.summary,
-      prompt_text: result.prompt_text,
-      discipline: preset.discipline ?? undefined,
-    })
-    pushNotice({ title: '个人模板已更新' })
-    await queryClient.invalidateQueries({ queryKey: ['prompt-presets'] })
+    setPendingPresetOp(true)
+    try {
+      await updatePromptPreset(preset.id, {
+        name: result.name,
+        summary: result.summary,
+        prompt_text: result.prompt_text,
+        discipline: preset.discipline ?? undefined,
+      })
+      pushNotice({ title: '个人模板已更新' })
+      await queryClient.invalidateQueries({ queryKey: ['prompt-presets'] })
+    } catch (error) {
+      pushNotice({ title: '更新失败', body: (error as Error).message })
+    } finally {
+      setPendingPresetOp(false)
+    }
   }
 
   async function removePersonalPreset(preset: PromptPreset) {
-    const confirm = await inputDialog.prompt({
+    if (pendingPresetOp) return
+    const confirmValue = await inputDialog.prompt({
       title: `删除模板「${preset.name}」`,
       message: '删除后无法恢复。输入 删除 以确认。',
       placeholder: '输入「删除」二字确认',
       confirmLabel: '确认删除',
     })
-    if (confirm !== '删除') {
+    if (confirmValue !== '删除') {
       pushNotice({ title: '已取消' })
       return
     }
-    await deletePromptPreset(preset.id)
-    pushNotice({ title: '个人模板已删除' })
-    await queryClient.invalidateQueries({ queryKey: ['prompt-presets'] })
+    setPendingPresetOp(true)
+    try {
+      await deletePromptPreset(preset.id)
+      pushNotice({ title: '个人模板已删除' })
+      await queryClient.invalidateQueries({ queryKey: ['prompt-presets'] })
+    } catch (error) {
+      pushNotice({ title: '删除失败', body: (error as Error).message })
+    } finally {
+      setPendingPresetOp(false)
+    }
   }
 
   return (

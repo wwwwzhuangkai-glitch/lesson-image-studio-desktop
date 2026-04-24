@@ -28,18 +28,23 @@ def create_rect_mask(
         raise ValueError("所选版本不属于当前图片项，不能创建遮罩。")
 
     source_path = storage.resolve_path(base_version.storage_key)
-    source_image = Image.open(source_path).convert("RGBA")
+    with Image.open(source_path) as raw_source:
+        source_image = raw_source.convert("RGBA")
     width, height = source_image.size
+
     mask = Image.new("RGBA", (width, height), (0, 0, 0, 255))
+    try:
+        x = max(0, min(geometry["x"], width))
+        y = max(0, min(geometry["y"], height))
+        rect_width = max(1, min(geometry["width"], width - x))
+        rect_height = max(1, min(geometry["height"], height - y))
+        draw = ImageDraw.Draw(mask)
+        draw.rectangle((x, y, x + rect_width, y + rect_height), fill=(0, 0, 0, 0))
 
-    x = max(0, min(geometry["x"], width))
-    y = max(0, min(geometry["y"], height))
-    rect_width = max(1, min(geometry["width"], width - x))
-    rect_height = max(1, min(geometry["height"], height - y))
-    draw = ImageDraw.Draw(mask)
-    draw.rectangle((x, y, x + rect_width, y + rect_height), fill=(0, 0, 0, 0))
-
-    stored = storage.save_pillow_image(mask, category="masks", file_name=f"{base_version.id}_mask.png")
+        stored = storage.save_pillow_image(mask, category="masks", file_name=f"{base_version.id}_mask.png")
+    finally:
+        source_image.close()
+        mask.close()
     image_mask = ImageMask(
         image_item_id=image_item_id,
         base_version_id=base_version.id,
