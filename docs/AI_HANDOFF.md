@@ -10,7 +10,9 @@
 4. `docs/UI_WORKBENCH.md`
 5. `docs/NEXT_PHASE_PLAN.md`
 6. `docs/SETTINGS_SPEC.md`
-7. 当前要改的页面或 service 文件
+7. `docs/PROVIDER_ADAPTER_SPEC.md`
+8. `docs/PROVIDER_VALIDATION_NOTES.md`
+9. 当前要改的页面或 service 文件
 
 ## 2. 最重要的不变量
 
@@ -41,6 +43,7 @@
 - 新增 provider / adapter 架构
 - `SettingsPage` 演进成默认 provider + 本地服务配置中心
 - 公司模型共享一套公司 AI 服务配置
+- 当前已拿到 TAL `gpt-image-2`、`gemini-3.1-flash-image`、`gemini-3-pro-image` 的真实成功样本
 
 ## 4. 常见改动入口
 
@@ -78,6 +81,7 @@
 
 - `config.py::Settings` 和 `models.py::AppSettings` 不要混淆
 - 当前 `JobRunner._load_openai_runtime` 仍有官方 OpenAI 的兼容合并逻辑
+- Gemini 家族当前已验证过 `flash-image` 和 `pro-image` 两个模型名，但 `stream=true` 还没有真实样本
 - 不要把 `VersionTree` 误改成跨图片项树
 - `duplicate-to-image-item` 不是“建立跨树父子关系”，而是“复制出新的根版本”
 - `OPENAI_API_KEY` 缺失时不要生成假图
@@ -90,7 +94,7 @@
 
 ## 6. 下一阶段 provider 接入建议
 
-后续接 TAL `gpt-image-2` 和 TAL `gemini-3.1-flash-image` 时，推荐不要继续往 `jobs.py` 里硬塞 `if provider == ...` 分支，而是明确做 adapter 层。
+后续接 TAL `gpt-image-2`、`gemini-3.1-flash-image` 和 `gemini-3-pro-image` 时，推荐不要继续往 `jobs.py` 里硬塞 `if provider == ...` 分支，而是明确做 adapter 层。
 
 推荐的后端形态：
 
@@ -99,6 +103,7 @@
 - `.../providers/openai_official.py`
 - `.../providers/tal_gpt_image_2.py`
 - `.../providers/tal_gemini_flash_image.py`
+- `.../providers/tal_gemini_pro_image.py`
 - `.../providers/registry.py`
   - 负责根据 `default_provider` 找 adapter
 
@@ -132,6 +137,13 @@
   - `modalities` 要包含 `"text"` 和 `"image"`
   - 图生图通过 `messages[].content[].image_url`
   - 可以带 `extra_body.generationConfig.imageConfig`
+- TAL `gemini-3-pro-image`
+  - 目前真实样本显示它和 `flash-image` 同族，返回结构可复用大部分 Gemini 解析逻辑
+
+真实样本路径和字段差异请先看：
+
+- `docs/PROVIDER_ADAPTER_SPEC.md`
+- `docs/PROVIDER_VALIDATION_NOTES.md`
 
 ## 7. 推荐接力方式
 
@@ -153,6 +165,7 @@
 - SettingsPage 的默认 provider 与公司 AI 服务配置
 - TAL `gpt-image-2` adapter
 - TAL `gemini-3.1-flash-image` adapter
+- TAL `gemini-3-pro-image` adapter
 - 文档与真实实现继续对齐
 - 路由级代码拆分，减小前端 chunk
 - 更完整的前端测试覆盖

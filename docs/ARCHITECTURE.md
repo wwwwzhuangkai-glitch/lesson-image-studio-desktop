@@ -10,6 +10,8 @@
 - `docs/SETTINGS_SPEC.md`
 - `docs/AI_HANDOFF.md`
 - `docs/DECISIONS.md`
+- `docs/PROVIDER_ADAPTER_SPEC.md`
+- `docs/PROVIDER_VALIDATION_NOTES.md`
 
 ## 2. 当前真实结构
 
@@ -234,6 +236,7 @@
 1. 官方 OpenAI
 2. TAL `gpt-image-2`
 3. TAL `gemini-3.1-flash-image`
+4. TAL `gemini-3-pro-image`
 
 其中 TAL 两种模型共享同一套公司 AI 服务配置，而不是各配一套 `base_url` / `key`。
 

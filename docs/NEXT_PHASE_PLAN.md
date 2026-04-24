@@ -47,6 +47,10 @@
   - 一个共享认证值
   - 不按模型拆两套配置
 - TAL 多图输入当前不做前端功能
+- 已完成外部联调验证的公司模型包括：
+  - `gpt-image-2`
+  - `gemini-3.1-flash-image`
+  - `gemini-3-pro-image`
 
 ## 5. 开发优先级
 
@@ -57,8 +61,9 @@
 3. 再扩 `SettingsPage`：默认 provider + 公司 AI 服务配置
 4. 接入 TAL `gpt-image-2`
 5. 接入 TAL `gemini-3.1-flash-image`
-6. 在 provider 结构稳定后继续打磨 `OwnerOverviewPage` 和 `ImageEditorPage`
-7. `chunk` 拆分仍然是 P2，并行处理但不是最高优先级产品目标
+6. 接入 TAL `gemini-3-pro-image`
+7. 在 provider 结构稳定后继续打磨 `OwnerOverviewPage` 和 `ImageEditorPage`
+8. `chunk` 拆分仍然是 P2，并行处理但不是最高优先级产品目标
 
 ## 6. UI 约束
 

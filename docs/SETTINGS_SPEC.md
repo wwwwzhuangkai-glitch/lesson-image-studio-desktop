@@ -154,6 +154,7 @@
     - `openai_official`
     - `tal_gpt_image_2`
     - `tal_gemini_flash_image`
+    - `tal_gemini_pro_image`
 - `tal_service_base_url`
   - 公司内部模型共享
 - `tal_service_api_key`
@@ -187,11 +188,13 @@
 - 认证 header：`api-key: appId:apiKey`
 - 模型名：`gpt-image-2`
 
-### TAL `gemini-3.1-flash-image`
+### TAL `gemini` 图片模型
 
 - 文生图 / 图生图：`POST {tal_service_base_url}/openai-compatible/v1/chat/completions`
 - 认证 header：同上
-- 模型名：`gemini-3.1-flash-image`
+- 模型名当前至少包括：
+  - `gemini-3.1-flash-image`
+  - `gemini-3-pro-image`
 - 需要：
   - `messages`
   - `modalities: ["text", "image"]`

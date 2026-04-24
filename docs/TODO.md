@@ -15,6 +15,13 @@
 - 跨图片项全局并发上限 `max_concurrent_jobs`
 - 7 处 `window.prompt` → `InputDialog` / `PresetFormDialog`
 - 模板搬到 `UtilityDrawer` 的 `templates` tab
+- 补齐 provider 接入文档：
+  - `docs/PROVIDER_ADAPTER_SPEC.md`
+  - `docs/PROVIDER_VALIDATION_NOTES.md`
+- 已收集真实样本：
+  - TAL `gpt-image-2`
+  - TAL `gemini-3.1-flash-image`
+  - TAL `gemini-3-pro-image`
 
 ## P1（下一轮主线）
 
@@ -25,8 +32,10 @@
   - 公司 AI 服务共享配置
 - 接入 TAL `gpt-image-2`
 - 接入 TAL `gemini-3.1-flash-image`
+- 接入 TAL `gemini-3-pro-image`
 - 保留当前官方 OpenAI 路径，不做替换式重构
 - 明确“当前前端不支持 TAL 多图输入”的产品边界
+- 补采 TAL `gemini` 的 `stream=true` 原始样本与失败样本
 
 ## P2（下一轮候选）
 
