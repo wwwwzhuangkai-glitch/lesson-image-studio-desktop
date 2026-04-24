@@ -5,7 +5,7 @@
 1. `other` 模式打开工作台时自动生成 `owner_id`，且要求本地标题。
 2. 同一个 `Owner` 下可以建立多张图片项，并在总览页以紧凑卡片矩阵展示。
 3. 总览页不是长网页，而是固定工作台：左栏、顶栏、主区都保持稳定。
-4. 编辑页不是长网页，而是左版本轨、中画布、右检视器的单屏工作台。
+4. 编辑页不是长网页，而是左版本轨、右上双图对照、右下控制台的单屏工作台。
 5. `item B` 不能拿 `item A` 的版本去创建 mask 或发起 edit。
 6. 选中某个版本后可以“复制为新图片项起点”，得到独立的新图片项和新根版本。
 7. 没有 `OPENAI_API_KEY` 时任务中心能看到失败任务和明确报错。
@@ -41,8 +41,15 @@
    - 官方 OpenAI 路径是否保留
    - TAL 两类模型各走什么请求形态
 
+## 编辑页双图工作台验收重点
+
+29. 左栏选中版本后，基准图显示该版本；图改图提交的 `base_version_id` 也是该版本。
+30. 结果图显示当前选中版本的最近直接子版本或最近任务产物；没有结果时显示明确空态。
+31. Prompt、provider、quality、尺寸说明、导出、发布、定稿动作都在底部控制台，不回到左栏。
+32. 矩形 mask 工具在基准图面板工具条内；结果图区域不承担 mask 编辑。
+
 ## 后续 Gemini Provider 验收重点
 
-29. TAL `gemini-3.1-flash-image` adapter 可以接文生图 / 图生图；其 `chat/completions` 差异被封装在 adapter 内，而不是扩散到前端页面。
-30. TAL `gemini-3-pro-image` 与 flash adapter 复用 Gemini 解析逻辑，并保持独立 provider id。
-31. TAL `gpt-image-2` 和 TAL Gemini provider 共享固定公司兼容层地址和同一个 key。
+33. TAL `gemini-3.1-flash-image` adapter 可以接文生图 / 图生图；其 `chat/completions` 差异被封装在 adapter 内，而不是扩散到前端页面。
+34. TAL `gemini-3-pro-image` 与 flash adapter 复用 Gemini 解析逻辑，并保持独立 provider id。
+35. TAL `gpt-image-2` 和 TAL Gemini provider 共享固定公司兼容层地址和同一个 key。

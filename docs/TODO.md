@@ -26,6 +26,10 @@
   - TAL 图改图 auto 按底图归一化到 `16` 对齐并显式传 size
   - 文生图 auto 不传 size
   - 官方 OpenAI 任务使用入队时的模型快照
+- 编辑页双图工作台：
+  - 左版本轨 + 右上基准图 / 结果图 + 右下控制台
+  - 图改图提交对象永远是左栏当前选中版本
+  - mask 工具归属到基准图面板，结果图只负责查看输出
 - 跨图片项全局并发上限 `max_concurrent_jobs`
 - 7 处 `window.prompt` → `InputDialog` / `PresetFormDialog`
 - 模板搬到 `UtilityDrawer` 的 `templates` tab
@@ -51,7 +55,7 @@
 - 路由级代码拆分，解决 `build` 的大 chunk 警告
 - 补前端测试覆盖（useTheme / Dialog / 更多 provider 分支）
 - OwnerOverviewPage 在现有 token 下进一步打磨卡片视觉 / 缩略图处理
-- ImageEditorPage 在现有 token 下深化版本轨的来源徽标 / 定稿提示层级
+- ImageEditorPage 在双图工作台骨架下深化版本轨来源徽标、定稿提示层级、结果图空态
 - 代码债：
   - `uiStore.ts` 的 `Date.now()+Math.random()` ID
   - `refetchInterval` 的 3 处 3000ms + 1 处 5000ms

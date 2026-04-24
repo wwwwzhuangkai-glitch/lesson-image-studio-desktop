@@ -26,7 +26,8 @@
 - 工作台不能退化成长网页
 - UtilityDrawer 是统一次级信息入口，不要再把任务/事件/回收站拆回多个浮层
 - 模板当前在 UtilityDrawer 的 `templates` tab，不要随手做回嵌入式长面板
-- 检视器保持“提示词、参数、定稿、导出、发布”这 5 类核心职责
+- 编辑页保持“左版本轨 + 双图对照 + 底部控制台”，不要随手做回长表单或三栏检视器
+- 左版本轨只做导航与上下文，不承载 prompt、参数、导出、发布
 
 ## 3. 当前实现和下一阶段方向不要混淆
 
@@ -93,6 +94,24 @@
 - `CanvasWorkbench` 用 `getComputedStyle(document.documentElement).getPropertyValue('--accent')` 读 token
 - 编辑页的 prompt textarea state 已经迁到 `uiStore.editorPromptText`
 - `uiStore.currentImageItemId` 由 `ImageEditorPage` 的 effect 维护，UtilityDrawer 据此决定模板“载入”是否可用
+
+### 编辑页双图数据关系
+
+当前 `ImageEditorPage` 已从“三栏检视器”重构为：
+
+- 左栏：版本轨、当前选中版本信息、定稿状态、任务 / 事件 / 回收站 / 模板入口
+- 右上：基准图 / 结果图双图对照
+- 右下：提示词、生成参数、动作按钮组成的紧凑控制台
+
+交互规则必须保持：
+
+- 左栏选中哪个版本，基准图就显示哪个版本
+- 图改图提交对象永远是左栏当前选中版本，也就是请求里的 `base_version_id`
+- 结果图显示当前选中版本的最新直接子版本，优先显示基于它的最近任务产物
+- 没有直接结果时，结果图必须展示明确空态
+- mask 只在基准图面板工具条里编辑；当前只支持矩形框选、清除、显示 / 隐藏选区
+- 结果图面板只负责查看输出，不要把 mask、prompt 或参数入口放进去
+- 底部控制台不要做成长表单，保持提示词 / 参数 / 动作三组紧凑布局
 
 ## 6. Provider 接入建议
 
