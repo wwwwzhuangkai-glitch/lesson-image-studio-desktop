@@ -700,8 +700,12 @@ a {
   overflow: hidden;
 }
 
+.image-compare-pane.has-toolbar {
+  grid-template-rows: auto auto minmax(0, 1fr);
+}
+
 .image-pane-header {
-  min-height: 64px;
+  min-height: 56px;
   padding: 0.72rem 0.78rem 0.72rem 0.85rem;
   border-bottom: 1px solid var(--divider);
   display: flex;
@@ -726,6 +730,23 @@ a {
   align-items: center;
   flex-wrap: wrap;
   gap: 0.5rem;
+}
+
+.image-pane-toolbar {
+  min-height: 48px;
+  padding: 0.45rem 0.78rem;
+  border-bottom: 1px solid var(--divider);
+  background: var(--surface-hover);
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.image-pane-toolbar .ghost-button.small {
+  padding: 0.42rem 0.68rem;
+  font-size: 0.82rem;
 }
 
 .canvas-toolbar {

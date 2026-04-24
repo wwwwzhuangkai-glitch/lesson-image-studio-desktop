@@ -227,14 +227,13 @@ function ImagePane({
   children: ReactNode
 }) {
   return (
-    <section className="image-compare-pane">
+    <section className={`image-compare-pane ${actions ? 'has-toolbar' : ''}`}>
       <div className="image-pane-header">
         <div className="image-pane-title">
           <span className="field-label">{title}</span>
           {meta ? <strong>{meta}</strong> : null}
         </div>
         <div className="image-pane-actions">
-          {actions}
           {onToggleBackground ? (
             <button className="ghost-button small" onClick={onToggleBackground}>
               {backgroundMode === 'checker' ? '纯色底' : '棋盘格'}
@@ -242,6 +241,7 @@ function ImagePane({
           ) : null}
         </div>
       </div>
+      {actions ? <div className="image-pane-toolbar">{actions}</div> : null}
       {children}
     </section>
   )
