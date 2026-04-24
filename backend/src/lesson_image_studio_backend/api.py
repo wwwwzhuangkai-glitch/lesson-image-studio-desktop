@@ -36,17 +36,21 @@ from .schemas import (
     PublishRequest,
     RecycleBinResponse,
     ReorderImageItemsRequest,
+    TalKeyUpdateRequest,
     TaskSummaryResponse,
     VersionResponse,
     VersionTreeNode,
 )
 from .services.app_settings import (
     clear_openai_api_key,
+    clear_tal_service_api_key,
     has_openai_api_key,
+    has_tal_service_api_key,
     load_app_settings,
     openai_api_key_source,
     save_app_settings,
     set_openai_api_key,
+    set_tal_service_api_key,
 )
 from .services.image_items import (
     OwnerTaskSummary,
@@ -509,7 +513,8 @@ def create_edit_job_endpoint(
             prompt_text=payload.prompt_text,
             mask_id=payload.mask_id,
             quality=payload.quality,
-            size=payload.size,
+            size_mode=payload.size_mode,
+            requested_size=payload.size,
         )
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
@@ -534,7 +539,8 @@ def create_generate_job_endpoint(
             image_item=image_item,
             prompt_text=payload.prompt_text,
             quality=payload.quality,
-            size=payload.size,
+            size_mode=payload.size_mode,
+            requested_size=payload.size,
         )
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
@@ -814,8 +820,10 @@ def _serialize_app_settings(row, env_key: str | None) -> AppSettingsResponse:
     return AppSettingsResponse(
         has_openai_api_key=has_openai_api_key(row, env_key),
         openai_api_key_source=openai_api_key_source(row, env_key),
+        has_tal_service_api_key=has_tal_service_api_key(row),
         openai_base_url=row.openai_base_url,
         openai_model=row.openai_model,
+        default_provider=row.default_provider,
         default_export_format=row.default_export_format,
         theme_mode=row.theme_mode,
         theme_variant=row.theme_variant,
@@ -869,6 +877,31 @@ def clear_openai_key_endpoint(
 ) -> AppSettingsResponse:
     try:
         row = clear_openai_api_key(db)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return _serialize_app_settings(row, settings.openai_api_key)
+
+
+@router.put("/settings/tal-key", response_model=AppSettingsResponse)
+def set_tal_key_endpoint(
+    payload: TalKeyUpdateRequest,
+    db: Session = Depends(get_db),
+    settings: Settings = Depends(get_app_settings),
+) -> AppSettingsResponse:
+    try:
+        row = set_tal_service_api_key(db, payload.tal_service_api_key)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return _serialize_app_settings(row, settings.openai_api_key)
+
+
+@router.delete("/settings/tal-key", response_model=AppSettingsResponse)
+def clear_tal_key_endpoint(
+    db: Session = Depends(get_db),
+    settings: Settings = Depends(get_app_settings),
+) -> AppSettingsResponse:
+    try:
+        row = clear_tal_service_api_key(db)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     return _serialize_app_settings(row, settings.openai_api_key)

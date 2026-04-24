@@ -283,7 +283,7 @@ def restore_image_item(db: Session, *, owner: Owner, image_item: ImageItem) -> N
 
 def soft_delete_version(db: Session, *, owner: Owner, image_item: ImageItem, version: ImageVersion) -> None:
     children_count = db.scalar(
-        select(func.count(ImageVersion.id)).where(ImageVersion.parent_version_id == version.id, ImageVersion.is_deleted.is_(False))
+        select(func.count(ImageVersion.id)).where(ImageVersion.parent_version_id == version.id)
     )
     running_refs = db.scalar(
         select(func.count(EditJob.id)).where(
@@ -294,7 +294,7 @@ def soft_delete_version(db: Session, *, owner: Owner, image_item: ImageItem, ver
     if image_item.current_final_version_id == version.id:
         raise ValueError("当前定稿版本不能直接删除。")
     if children_count:
-        raise ValueError("只有叶子草稿版本可以删除。")
+        raise ValueError("只有没有任何子版本的叶子草稿版本可以删除。")
     if running_refs:
         raise ValueError("该版本仍被运行中的任务引用，不能删除。")
     version.is_deleted = True

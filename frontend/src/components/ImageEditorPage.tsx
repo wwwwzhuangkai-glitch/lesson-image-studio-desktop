@@ -18,7 +18,7 @@ import {
   unfinalizeVersion,
 } from '../lib/api'
 import { useUiStore } from '../store/uiStore'
-import type { Version } from '../types/api'
+import type { Quality, Version } from '../types/api'
 import { AppTopbar } from './AppTopbar'
 import { CanvasWorkbench } from './CanvasWorkbench'
 import { useInputDialog } from './InputDialog'
@@ -30,7 +30,9 @@ const QUALITY_OPTIONS = [
   { value: 'high', label: '高' },
 ] as const
 
-const SIZE_OPTIONS = ['1024x1024', '1536x1024', '1024x1536'] as const
+const EMPTY_VERSIONS: Version[] = []
+const GENERATE_SIZE_OPTIONS = ['auto', '1024x1024', '1536x1024', '1024x1536'] as const
+type GenerateSizeOption = (typeof GENERATE_SIZE_OPTIONS)[number]
 
 export function ImageEditorPage() {
   const { itemId = '' } = useParams()
@@ -46,9 +48,9 @@ export function ImageEditorPage() {
   const clearEditorPromptText = useUiStore((state) => state.clearEditorPromptText)
   const setUtilityTab = useUiStore((state) => state.setUtilityTab)
   const inputDialog = useInputDialog()
-  const [quality, setQuality] = useState<'low' | 'medium' | 'high'>('medium')
-  const [size, setSize] = useState<'1024x1024' | '1536x1024' | '1024x1536'>('1024x1024')
-  const [selectedVersionId, setSelectedVersionId] = useState<string | null>(null)
+  const [quality, setQuality] = useState<Quality>('high')
+  const [generateSize, setGenerateSize] = useState<GenerateSizeOption>('auto')
+  const [userSelectedVersionId, setUserSelectedVersionId] = useState<string | null>(null)
   const [selectionRect, setSelectionRect] = useState<{ x: number; y: number; width: number; height: number } | null>(null)
   const [selectionEnabled, setSelectionEnabled] = useState(false)
 
@@ -80,34 +82,31 @@ export function ImageEditorPage() {
     }
   }, [itemId, setCurrentImageItemId, clearEditorPromptText])
 
-  useEffect(() => {
-    if (!detailQuery.data?.versions.length) {
-      setSelectedVersionId(null)
-      return
+  const versions = detailQuery.data?.versions ?? EMPTY_VERSIONS
+  const currentFinalVersion = detailQuery.data?.current_final_version ?? null
+  const selectedVersionId = useMemo(() => {
+    if (!versions.length) {
+      return null
     }
-    if (selectedVersionId && detailQuery.data.versions.some((version) => version.id === selectedVersionId)) {
-      return
+    if (userSelectedVersionId && versions.some((version) => version.id === userSelectedVersionId)) {
+      return userSelectedVersionId
     }
-    setSelectedVersionId(
-      detailQuery.data.current_final_version?.id ??
-        detailQuery.data.versions[detailQuery.data.versions.length - 1]?.id ??
-        null,
-    )
-  }, [detailQuery.data, selectedVersionId])
+    return currentFinalVersion?.id ?? versions[versions.length - 1]?.id ?? null
+  }, [currentFinalVersion?.id, userSelectedVersionId, versions])
 
   const selectedVersion = useMemo(
-    () => detailQuery.data?.versions.find((version) => version.id === selectedVersionId) ?? null,
-    [detailQuery.data?.versions, selectedVersionId],
+    () => versions.find((version) => version.id === selectedVersionId) ?? null,
+    [selectedVersionId, versions],
   )
   const compareVersion = useMemo(() => {
     if (!selectedVersion) {
       return null
     }
-    return detailQuery.data?.versions.find((version) => version.id === selectedVersion.parent_version_id) ?? null
-  }, [detailQuery.data?.versions, selectedVersion])
+    return versions.find((version) => version.id === selectedVersion.parent_version_id) ?? null
+  }, [selectedVersion, versions])
 
-  const currentFinalVersion = detailQuery.data?.current_final_version ?? null
-  const hasVersions = Boolean(detailQuery.data?.versions.length)
+  const hasVersions = Boolean(versions.length)
+  const selectedInputSize = selectedVersion ? `${selectedVersion.width}x${selectedVersion.height}` : 'auto'
 
   const invalidate = async () => {
     await queryClient.invalidateQueries({ queryKey: ['image-item', itemId] })
@@ -138,7 +137,7 @@ export function ImageEditorPage() {
         prompt_text: promptText,
         mask_id: maskId,
         quality,
-        size,
+        size_mode: 'auto',
       })
     },
     onSuccess: async () => {
@@ -149,7 +148,13 @@ export function ImageEditorPage() {
   })
 
   const generateMutation = useMutation({
-    mutationFn: () => createGenerateJob(itemId, { prompt_text: promptText, quality, size }),
+    mutationFn: () => {
+      const sizePayload =
+        generateSize === 'auto'
+          ? { size_mode: 'auto' as const }
+          : { size_mode: 'preset' as const, size: generateSize }
+      return createGenerateJob(itemId, { prompt_text: promptText, quality, ...sizePayload })
+    },
     onSuccess: async () => {
       pushNotice({ title: '生图任务已入队' })
       await invalidate()
@@ -262,7 +267,7 @@ export function ImageEditorPage() {
           <VersionTree
             nodes={treeQuery.data ?? []}
             selectedVersionId={selectedVersionId}
-            onSelect={setSelectedVersionId}
+            onSelect={setUserSelectedVersionId}
           />
         </div>
 
@@ -353,7 +358,7 @@ export function ImageEditorPage() {
                 <div className="two-columns">
                   <label>
                     <span className="field-label">质量</span>
-                    <select value={quality} onChange={(event) => setQuality(event.target.value as typeof quality)}>
+                    <select value={quality} onChange={(event) => setQuality(event.target.value as Quality)}>
                       {QUALITY_OPTIONS.map((option) => (
                         <option key={option.value} value={option.value}>
                           {option.label}
@@ -361,16 +366,26 @@ export function ImageEditorPage() {
                       ))}
                     </select>
                   </label>
-                  <label>
-                    <span className="field-label">尺寸</span>
-                    <select value={size} onChange={(event) => setSize(event.target.value as typeof size)}>
-                      {SIZE_OPTIONS.map((option) => (
-                        <option key={option} value={option}>
-                          {option}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
+                  <div>
+                    <span className="field-label">{hasVersions ? '输入图规格' : '生图尺寸'}</span>
+                    {hasVersions ? (
+                      <>
+                        <div className="topbar-chip">{selectedInputSize}</div>
+                        <span className="settings-help">提交后由后端按 provider 规则归一化。</span>
+                      </>
+                    ) : (
+                      <select
+                        value={generateSize}
+                        onChange={(event) => setGenerateSize(event.target.value as GenerateSizeOption)}
+                      >
+                        {GENERATE_SIZE_OPTIONS.map((option) => (
+                          <option key={option} value={option}>
+                            {option}
+                          </option>
+                        ))}
+                      </select>
+                    )}
+                  </div>
                 </div>
               </section>
 
@@ -470,4 +485,3 @@ export function ImageEditorPage() {
     </div>
   )
 }
-

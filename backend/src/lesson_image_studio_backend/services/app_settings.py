@@ -11,12 +11,14 @@ _SINGLETON_ID = "singleton"
 _ALLOWED_FIELDS = {
     "openai_base_url",
     "openai_model",
+    "default_provider",
     "default_export_format",
     "theme_mode",
     "theme_variant",
     "max_concurrent_jobs",
 }
 
+ALLOWED_PROVIDERS = {"openai_official", "tal_gpt_image_2"}
 _ALLOWED_EXPORT_FORMATS = {"png", "jpeg", "webp"}
 _ALLOWED_THEME_MODES = {"light", "dark"}
 _ALLOWED_THEME_VARIANTS = {"graphite", "glass"}
@@ -49,7 +51,12 @@ def save_app_settings(db: Session, **patch: Any) -> AppSettings:
             raise ValueError("openai_base_url 必须是字符串。")
         if field == "openai_model" and (not isinstance(value, str) or not value.strip()):
             raise ValueError("openai_model 不能为空。")
-        setattr(row, field, value.strip() if isinstance(value, str) else value)
+        if field == "default_provider" and value not in ALLOWED_PROVIDERS:
+            raise ValueError(f"default_provider 必须是 {sorted(ALLOWED_PROVIDERS)} 之一。")
+        cleaned_value = value.strip() if isinstance(value, str) else value
+        if field == "openai_base_url" and isinstance(cleaned_value, str):
+            cleaned_value = cleaned_value.rstrip("/")
+        setattr(row, field, cleaned_value)
     db.commit()
     db.refresh(row)
     return row
@@ -74,11 +81,36 @@ def clear_openai_api_key(db: Session) -> AppSettings:
     return row
 
 
+def set_tal_service_api_key(db: Session, key: str) -> AppSettings:
+    cleaned = (key or "").strip()
+    if not cleaned:
+        raise ValueError("公司 AI 服务认证值不能为空。")
+    if ":" not in cleaned:
+        raise ValueError("公司 AI 服务认证值格式应为 appId:apiKey。")
+    row = load_app_settings(db)
+    row.tal_service_api_key = cleaned
+    db.commit()
+    db.refresh(row)
+    return row
+
+
+def clear_tal_service_api_key(db: Session) -> AppSettings:
+    row = load_app_settings(db)
+    row.tal_service_api_key = None
+    db.commit()
+    db.refresh(row)
+    return row
+
+
 def has_openai_api_key(row: AppSettings, env_key: str | None = None) -> bool:
     return bool(
         (row.openai_api_key and row.openai_api_key.strip())
         or (env_key and env_key.strip())
     )
+
+
+def has_tal_service_api_key(row: AppSettings) -> bool:
+    return bool(row.tal_service_api_key and row.tal_service_api_key.strip())
 
 
 def openai_api_key_source(row: AppSettings, env_key: str | None = None) -> str:

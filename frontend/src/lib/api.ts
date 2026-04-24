@@ -11,9 +11,11 @@ import type {
   OpenOwnerResponse,
   Owner,
   OwnerOverview,
+  Quality,
   PromptPreset,
   PublishRecord,
   RecycleBin,
+  SizeMode,
   Version,
   VersionTreeNode,
 } from '../types/api'
@@ -127,8 +129,9 @@ export function createEditJob(payload: {
   base_version_id: string
   prompt_text: string
   mask_id?: string
-  quality: 'low' | 'medium' | 'high'
-  size: '1024x1024' | '1536x1024' | '1024x1536'
+  quality?: Quality
+  size_mode?: SizeMode
+  size?: string | null
 }) {
   return request<CreateJobResponse>('/api/edits', { method: 'POST', body: payload })
 }
@@ -137,8 +140,9 @@ export function createGenerateJob(
   imageItemId: string,
   payload: {
     prompt_text: string
-    quality: 'low' | 'medium' | 'high'
-    size: '1024x1024' | '1536x1024' | '1024x1536'
+    quality?: Quality
+    size_mode?: SizeMode
+    size?: string | null
   },
 ) {
   return request<CreateJobResponse>(`/api/image-items/${imageItemId}/generate`, {
@@ -262,4 +266,15 @@ export function setOpenAIKey(key: string) {
 
 export function clearOpenAIKey() {
   return request<AppSettings>('/api/settings/openai-key', { method: 'DELETE' })
+}
+
+export function setTalKey(key: string) {
+  return request<AppSettings>('/api/settings/tal-key', {
+    method: 'PUT',
+    body: { tal_service_api_key: key },
+  })
+}
+
+export function clearTalKey() {
+  return request<AppSettings>('/api/settings/tal-key', { method: 'DELETE' })
 }

@@ -6,6 +6,11 @@ from typing import Any, Literal
 from pydantic import BaseModel, ConfigDict, Field
 
 
+ProviderId = Literal["openai_official", "tal_gpt_image_2"]
+Quality = Literal["low", "medium", "high"]
+SizeMode = Literal["auto", "preset", "custom"]
+
+
 class OwnerResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
@@ -205,14 +210,16 @@ class CreateEditJobRequest(BaseModel):
     base_version_id: str
     prompt_text: str
     mask_id: str | None = None
-    quality: Literal["low", "medium", "high"] = "medium"
-    size: Literal["1024x1024", "1536x1024", "1024x1536"] = "1024x1024"
+    quality: Quality = "high"
+    size_mode: SizeMode = "auto"
+    size: str | None = None
 
 
 class CreateGenerateJobRequest(BaseModel):
     prompt_text: str
-    quality: Literal["low", "medium", "high"] = "medium"
-    size: Literal["1024x1024", "1536x1024", "1024x1536"] = "1024x1024"
+    quality: Quality = "high"
+    size_mode: SizeMode = "auto"
+    size: str | None = None
 
 
 class DuplicateToImageItemRequest(BaseModel):
@@ -268,8 +275,10 @@ class MessageResponse(BaseModel):
 class AppSettingsResponse(BaseModel):
     has_openai_api_key: bool
     openai_api_key_source: Literal["app_settings", "env", "none"]
+    has_tal_service_api_key: bool
     openai_base_url: str
     openai_model: str
+    default_provider: ProviderId
     default_export_format: Literal["png", "jpeg", "webp"]
     theme_mode: Literal["light", "dark"]
     theme_variant: Literal["graphite", "glass"]
@@ -280,6 +289,7 @@ class AppSettingsResponse(BaseModel):
 class AppSettingsUpdateRequest(BaseModel):
     openai_base_url: str | None = None
     openai_model: str | None = None
+    default_provider: ProviderId | None = None
     default_export_format: Literal["png", "jpeg", "webp"] | None = None
     theme_mode: Literal["light", "dark"] | None = None
     theme_variant: Literal["graphite", "glass"] | None = None
@@ -288,6 +298,10 @@ class AppSettingsUpdateRequest(BaseModel):
 
 class OpenAIKeyUpdateRequest(BaseModel):
     openai_api_key: str = Field(min_length=1)
+
+
+class TalKeyUpdateRequest(BaseModel):
+    tal_service_api_key: str = Field(min_length=1)
 
 
 ImageItemSummaryResponse.model_rebuild()

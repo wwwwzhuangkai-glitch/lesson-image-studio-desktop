@@ -1,23 +1,28 @@
 import { useEffect, useState } from 'react'
 
 export function useImageElement(src: string | null) {
-  const [image, setImage] = useState<HTMLImageElement | null>(null)
+  const [loaded, setLoaded] = useState<{ src: string; image: HTMLImageElement } | null>(null)
 
   useEffect(() => {
     if (!src) {
-      setImage(null)
       return
     }
 
+    let cancelled = false
     const img = new window.Image()
     img.crossOrigin = 'anonymous'
-    img.onload = () => setImage(img)
+    img.onload = () => {
+      if (!cancelled) {
+        setLoaded({ src, image: img })
+      }
+    }
     img.src = src
 
     return () => {
-      setImage(null)
+      cancelled = true
+      img.onload = null
     }
   }, [src])
 
-  return image
+  return loaded?.src === src ? loaded.image : null
 }

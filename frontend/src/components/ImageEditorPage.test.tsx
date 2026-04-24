@@ -1,9 +1,10 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { render, screen } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
-import { expect, it, vi } from 'vitest'
+import { beforeEach, expect, it, vi } from 'vitest'
 
 import { ImageEditorPage } from './ImageEditorPage'
+import { createEditJob } from '../lib/api'
 import { useUiStore } from '../store/uiStore'
 
 vi.mock('../lib/api', () => ({
@@ -29,8 +30,8 @@ vi.mock('../lib/api', () => ({
       file_name: 'edited.png',
       file_url: '/files/edited.png',
       mime_type: 'image/png',
-      width: 100,
-      height: 100,
+      width: 935,
+      height: 1683,
       file_size: 1024,
       prompt_text: '清晰化',
       prompt_summary: '清晰化',
@@ -52,8 +53,8 @@ vi.mock('../lib/api', () => ({
         file_name: 'root.png',
         file_url: '/files/root.png',
         mime_type: 'image/png',
-        width: 100,
-        height: 100,
+        width: 935,
+        height: 1683,
         file_size: 1024,
         prompt_text: null,
         prompt_summary: '导入底图',
@@ -74,8 +75,8 @@ vi.mock('../lib/api', () => ({
         file_name: 'edited.png',
         file_url: '/files/edited.png',
         mime_type: 'image/png',
-        width: 100,
-        height: 100,
+        width: 935,
+        height: 1683,
         file_size: 1024,
         prompt_text: '清晰化',
         prompt_summary: '清晰化',
@@ -101,8 +102,8 @@ vi.mock('../lib/api', () => ({
       file_name: 'root.png',
       file_url: '/files/root.png',
       mime_type: 'image/png',
-      width: 100,
-      height: 100,
+      width: 935,
+      height: 1683,
       file_size: 1024,
       prompt_text: null,
       prompt_summary: '导入底图',
@@ -123,8 +124,8 @@ vi.mock('../lib/api', () => ({
           file_name: 'edited.png',
           file_url: '/files/edited.png',
           mime_type: 'image/png',
-          width: 100,
-          height: 100,
+          width: 935,
+          height: 1683,
           file_size: 1024,
           prompt_text: '清晰化',
           prompt_summary: '清晰化',
@@ -155,8 +156,8 @@ vi.mock('../lib/api', () => ({
       updated_at: '2026-04-23T00:00:00Z',
     },
   ]),
-  createEditJob: vi.fn(),
-  createGenerateJob: vi.fn(),
+  createEditJob: vi.fn(async () => ({ job_id: 'job_1', status: 'queued' })),
+  createGenerateJob: vi.fn(async () => ({ job_id: 'job_2', status: 'queued' })),
   createMask: vi.fn(),
   createPromptPreset: vi.fn(),
   deletePromptPreset: vi.fn(),
@@ -174,6 +175,10 @@ vi.mock('./CanvasWorkbench', () => ({
   CanvasWorkbench: () => <div>CanvasWorkbench Stub</div>,
 }))
 
+beforeEach(() => {
+  vi.mocked(createEditJob).mockClear()
+})
+
 it('renders the three-column editor shell without embedding the template library', async () => {
   const queryClient = new QueryClient()
   useUiStore.setState({
@@ -184,7 +189,7 @@ it('renders the three-column editor shell without embedding the template library
     currentImageItemId: null,
     notices: [],
     jobIndicatorCount: 0,
-    editorPromptText: '',
+    editorPromptText: '把图整理成教材风格',
   })
 
   render(
@@ -205,4 +210,18 @@ it('renders the three-column editor shell without embedding the template library
   expect(screen.queryByRole('button', { name: /模板库/ })).not.toBeInTheDocument()
   // An explicit "open templates drawer" entry replaces the old embedded list.
   expect(screen.getByRole('button', { name: '打开模板抽屉' })).toBeInTheDocument()
+  expect(screen.getByText('935x1683')).toBeInTheDocument()
+  expect(screen.getByText('提交后由后端按 provider 规则归一化。')).toBeInTheDocument()
+
+  fireEvent.click(screen.getByRole('button', { name: '发起 AI 改图' }))
+  await waitFor(() => {
+    expect(createEditJob).toHaveBeenCalledWith({
+      image_item_id: 'item_1',
+      base_version_id: 'ver_2',
+      prompt_text: '把图整理成教材风格',
+      mask_id: undefined,
+      quality: 'high',
+      size_mode: 'auto',
+    })
+  })
 })

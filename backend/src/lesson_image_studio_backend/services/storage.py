@@ -8,7 +8,7 @@ from pathlib import Path
 from uuid import uuid4
 
 from fastapi import UploadFile
-from PIL import Image
+from PIL import Image, UnidentifiedImageError
 
 from ..config import Settings
 
@@ -61,12 +61,17 @@ class StorageService:
         target_name = f"{uuid4().hex}{suffix}"
         storage_key = f"{category}/{target_name}"
         target_path = self.base_dir / storage_key
+
+        try:
+            image = Image.open(io.BytesIO(data))
+            image.load()
+            width, height = image.size
+            image.close()
+        except (OSError, UnidentifiedImageError) as exc:
+            raise ValueError("上传文件不是可识别的图片。") from exc
+
         target_path.parent.mkdir(parents=True, exist_ok=True)
         target_path.write_bytes(data)
-
-        image = Image.open(io.BytesIO(data))
-        width, height = image.size
-        image.close()
 
         return StoredFile(
             storage_key=storage_key,

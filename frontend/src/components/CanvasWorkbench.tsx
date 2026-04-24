@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import type { KonvaEventObject } from 'konva/lib/Node'
 import { Group, Image as KonvaImage, Layer, Line, Rect, Stage } from 'react-konva'
 
 import { useImageElement } from '../hooks/useImageElement'
@@ -76,7 +77,7 @@ export function CanvasWorkbench({
     y: Math.max(0, Math.round(y / dimensions.scale)),
   })
 
-  const handleMouseDown = (event: { target: { getStage: () => any } }) => {
+  const handleMouseDown = (event: KonvaEventObject<MouseEvent>) => {
     if (!enableSelection) {
       return
     }
@@ -90,7 +91,7 @@ export function CanvasWorkbench({
     setDraft({ ...point, width: 1, height: 1 })
   }
 
-  const handleMouseMove = (event: { target: { getStage: () => any } }) => {
+  const handleMouseMove = (event: KonvaEventObject<MouseEvent>) => {
     if (!enableSelection || !startPoint) {
       return
     }

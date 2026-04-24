@@ -3,13 +3,24 @@ import type { ChangeEvent, FormEvent } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 
-import { clearOpenAIKey, getAppSettings, setOpenAIKey, updateAppSettings } from '../lib/api'
+import {
+  clearOpenAIKey,
+  clearTalKey,
+  getAppSettings,
+  setOpenAIKey,
+  setTalKey,
+  updateAppSettings,
+} from '../lib/api'
 import { useUiStore } from '../store/uiStore'
-import type { AppSettings, ExportFormat, ThemeMode, ThemeVariant } from '../types/api'
+import type { AppSettings, ExportFormat, ProviderId, ThemeMode, ThemeVariant } from '../types/api'
 import { AppTopbar } from './AppTopbar'
 import { useInputDialog } from './InputDialog'
 
 const EXPORT_OPTIONS: ExportFormat[] = ['png', 'jpeg', 'webp']
+const PROVIDER_OPTIONS: Array<{ id: ProviderId; label: string }> = [
+  { id: 'openai_official', label: 'OpenAI 官方' },
+  { id: 'tal_gpt_image_2', label: 'TAL gpt-image-2' },
+]
 
 export function SettingsPage() {
   const navigate = useNavigate()
@@ -28,6 +39,8 @@ export function SettingsPage() {
   const [keyDraft, setKeyDraft] = useState('')
   const [baseUrlDraft, setBaseUrlDraft] = useState('')
   const [modelDraft, setModelDraft] = useState('gpt-image-2')
+  const [providerDraft, setProviderDraft] = useState<ProviderId>('openai_official')
+  const [talKeyDraft, setTalKeyDraft] = useState('')
   const [exportDraft, setExportDraft] = useState<ExportFormat>('png')
   const [concurrencyDraft, setConcurrencyDraft] = useState(2)
 
@@ -40,6 +53,7 @@ export function SettingsPage() {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setBaseUrlDraft(query.data.openai_base_url)
       setModelDraft(query.data.openai_model)
+      setProviderDraft(query.data.default_provider)
       setExportDraft(query.data.default_export_format)
       setConcurrencyDraft(query.data.max_concurrent_jobs)
     }
@@ -71,6 +85,25 @@ export function SettingsPage() {
     onSuccess: (data) => {
       queryClient.setQueryData(['app-settings'], data)
       pushNotice({ title: 'API Key 已清空' })
+    },
+    onError: (error: Error) => pushNotice({ title: '清空失败', body: error.message }),
+  })
+
+  const setTalKeyMutation = useMutation({
+    mutationFn: setTalKey,
+    onSuccess: (data) => {
+      queryClient.setQueryData(['app-settings'], data)
+      setTalKeyDraft('')
+      pushNotice({ title: '公司认证值已保存' })
+    },
+    onError: (error: Error) => pushNotice({ title: '保存失败', body: error.message }),
+  })
+
+  const clearTalKeyMutation = useMutation({
+    mutationFn: clearTalKey,
+    onSuccess: (data) => {
+      queryClient.setQueryData(['app-settings'], data)
+      pushNotice({ title: '公司认证值已清空' })
     },
     onError: (error: Error) => pushNotice({ title: '清空失败', body: error.message }),
   })
@@ -111,6 +144,12 @@ export function SettingsPage() {
     updateMutation.mutate({ default_export_format: next })
   }
 
+  function handleProviderChange(next: ProviderId) {
+    if (next === settings?.default_provider) return
+    setProviderDraft(next)
+    updateMutation.mutate({ default_provider: next })
+  }
+
   function handleSaveDefaults(event: FormEvent) {
     event.preventDefault()
     const trimmedModel = modelDraft.trim() || 'gpt-image-2'
@@ -133,6 +172,16 @@ export function SettingsPage() {
     setKeyMutation.mutate(trimmed)
   }
 
+  function handleSaveTalKey(event: FormEvent) {
+    event.preventDefault()
+    const trimmed = talKeyDraft.trim()
+    if (!trimmed) {
+      pushNotice({ title: '公司认证值不能为空' })
+      return
+    }
+    setTalKeyMutation.mutate(trimmed)
+  }
+
   async function handleClearKey() {
     if (!settings?.has_openai_api_key) return
     const confirmValue = await inputDialog.prompt({
@@ -146,6 +195,21 @@ export function SettingsPage() {
       return
     }
     clearKeyMutation.mutate()
+  }
+
+  async function handleClearTalKey() {
+    if (!settings?.has_tal_service_api_key) return
+    const confirmValue = await inputDialog.prompt({
+      title: '清空公司认证值',
+      message: '清空后 TAL provider 将无法执行新任务。输入 清空 以确认。',
+      placeholder: '输入「清空」二字确认',
+      confirmLabel: '确认清空',
+    })
+    if (confirmValue !== '清空') {
+      pushNotice({ title: '已取消' })
+      return
+    }
+    clearTalKeyMutation.mutate()
   }
 
   return (
@@ -166,6 +230,30 @@ export function SettingsPage() {
 
       <div className="workspace-scroll">
         <div className="settings-grid">
+          <section className="panel settings-section">
+            <div>
+              <div className="eyebrow">Provider</div>
+              <h2>默认 Provider</h2>
+            </div>
+            <div className="settings-row">
+              <span className="field-label">新任务默认使用</span>
+              <div className="segmented">
+                {PROVIDER_OPTIONS.map((option) => (
+                  <button
+                    key={option.id}
+                    type="button"
+                    className={providerDraft === option.id ? 'active' : ''}
+                    disabled={updateMutation.isPending}
+                    onClick={() => handleProviderChange(option.id)}
+                  >
+                    {option.label}
+                  </button>
+                ))}
+              </div>
+              <span className="settings-help">已创建任务会使用入队时快照的 provider。</span>
+            </div>
+          </section>
+
           <section className="panel settings-section">
             <div>
               <div className="eyebrow">密钥</div>
@@ -214,6 +302,54 @@ export function SettingsPage() {
                   disabled={setKeyMutation.isPending || !keyDraft.trim()}
                 >
                   {settings.has_openai_api_key ? '更新 Key' : '保存 Key'}
+                </button>
+                <span className="settings-help">保存后不会再从接口回传任何字符。</span>
+              </div>
+            </form>
+          </section>
+
+          <section className="panel settings-section">
+            <div>
+              <div className="eyebrow">公司 AI 服务</div>
+              <h2>TAL gpt-image-2 配置</h2>
+              <p className="settings-help">
+                公司兼容层地址由应用固定使用，老师只需要配置 appId:apiKey。
+              </p>
+            </div>
+            <div className="settings-inline">
+              <span className={`key-status-badge${settings.has_tal_service_api_key ? ' configured' : ''}`}>
+                {settings.has_tal_service_api_key ? '已配置 · 本地' : '未配置'}
+              </span>
+              {settings.has_tal_service_api_key ? (
+                <button
+                  type="button"
+                  className="ghost-button small danger"
+                  disabled={clearTalKeyMutation.isPending}
+                  onClick={() => void handleClearTalKey()}
+                >
+                  清空认证值
+                </button>
+              ) : null}
+            </div>
+            <form className="settings-row" onSubmit={handleSaveTalKey}>
+              <label>
+                <span className="field-label">认证值</span>
+                <input
+                  value={talKeyDraft}
+                  onChange={(event) => setTalKeyDraft(event.target.value)}
+                  placeholder="appId:apiKey"
+                  autoComplete="off"
+                  spellCheck={false}
+                  type="password"
+                />
+              </label>
+              <div className="settings-inline">
+                <button
+                  type="submit"
+                  className="primary-button"
+                  disabled={setTalKeyMutation.isPending || !talKeyDraft.trim()}
+                >
+                  {settings.has_tal_service_api_key ? '更新公司认证值' : '保存公司认证值'}
                 </button>
                 <span className="settings-help">保存后不会再从接口回传任何字符。</span>
               </div>

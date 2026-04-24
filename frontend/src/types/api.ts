@@ -175,14 +175,19 @@ export interface MessageResponse {
 export type ThemeMode = 'light' | 'dark'
 export type ThemeVariant = 'graphite' | 'glass'
 export type ExportFormat = 'png' | 'jpeg' | 'webp'
+export type ProviderId = 'openai_official' | 'tal_gpt_image_2'
+export type Quality = 'low' | 'medium' | 'high'
+export type SizeMode = 'auto' | 'preset' | 'custom'
 
 export type OpenAIKeySource = 'app_settings' | 'env' | 'none'
 
 export interface AppSettings {
   has_openai_api_key: boolean
   openai_api_key_source: OpenAIKeySource
+  has_tal_service_api_key: boolean
   openai_base_url: string
   openai_model: string
+  default_provider: ProviderId
   default_export_format: ExportFormat
   theme_mode: ThemeMode
   theme_variant: ThemeVariant
@@ -193,6 +198,7 @@ export interface AppSettings {
 export interface AppSettingsUpdate {
   openai_base_url?: string
   openai_model?: string
+  default_provider?: ProviderId
   default_export_format?: ExportFormat
   theme_mode?: ThemeMode
   theme_variant?: ThemeVariant
