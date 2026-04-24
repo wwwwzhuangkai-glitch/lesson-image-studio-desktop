@@ -2,13 +2,13 @@
 
 ## 1. 目标
 
-下一阶段的目标不是改数据主模型，而是在不动核心边界的前提下，把产品推进到“更成熟的内部教研工作台”，并在 Provider MVP 基础上继续扩展公司模型。
+下一阶段的目标不是改数据主模型，也不是继续重写 provider，而是在保护现有 TAL / Provider 数据流的前提下，把产品推进到“更成熟的内部教研工作台”。
 
 本阶段产出包含三条线：
 
-- 设置体系继续作为 provider 配置中心
-- 在已有 provider / adapter 架构上新增 Gemini provider，同时保留官方 OpenAI 路径
-- UI 继续打磨，偏重现代感、结构感和工作台质感
+- UI 视觉重构优先，偏重现代感、结构感和工作台质感
+- TAL `gpt-image-2` 全链路作为回归护栏
+- Provider 架构保持稳定，Gemini provider 放到后续阶段
 
 ## 2. 页面结构
 
@@ -54,12 +54,12 @@
 
 ## 5. 开发优先级
 
-下一阶段建议按下面顺序推进：
+下一阶段执行顺序：
 
-1. 先完成 docs 与真实实现的统一
-2. 接入 TAL `gemini-3.1-flash-image`
-3. 接入 TAL `gemini-3-pro-image`
-4. 在 provider 结构稳定后继续打磨 `OwnerOverviewPage` 和 `ImageEditorPage`
+1. 先做 UI 视觉重构，重点是 `OwnerOverviewPage`、`ImageEditorPage`、`SettingsPage`
+2. 重构中保护 TAL 数据流：settings -> job -> adapter -> storage -> version -> event
+3. UI 收尾时补齐 SettingsPage / ImageEditorPage 的前端回归测试
+4. TAL Gemini provider 接入放到 UI 主线之后
 5. `chunk` 拆分仍然是 P2，并行处理但不是最高优先级产品目标
 
 ## 6. UI 约束
@@ -71,7 +71,7 @@
 - 不做消费级、炫技型、过度卡通的界面
 - 不做大段展示型页面
 - 更像教研工作台 / 内部 SaaS / 专业编辑工具
-- `ImageEditorPage` 当前已进入“左版本轨 + 双图对照 + 底部控制台”结构；后续只能在这个骨架上深化，不要退回三栏检视器
+- `ImageEditorPage` 当前已进入“左版本轨 + 双图对照 + 底部控制台”结构；后续只能在这个骨架上深化，不要退回旧检视器结构
 
 ## 7. 工程约束
 
@@ -81,6 +81,7 @@
 - 允许重排组件，但不能让工作台骨架退化
 - 不要把 provider 差异扩散到页面主逻辑里
 - 不要把 TAL 模型拆成两套公司服务配置
+- 不要在 UI 重构中改动 `JobRunner`、provider registry 或 adapter HTTP 细节，除非是明确 bugfix
 
 详细设置规格请看 `docs/SETTINGS_SPEC.md`。  
 不可动摇规则请看 `docs/DECISIONS.md`。
@@ -116,7 +117,7 @@
 
 2026-04-24 编辑页双图工作台已完成：
 
-- `ImageEditorPage` 从三栏检视器重构为左版本轨 + 双图对照 + 底部控制台
+- `ImageEditorPage` 重构为左版本轨 + 双图对照 + 底部控制台
 - 左栏当前选中版本就是基准图和图改图提交对象
 - 结果图显示当前选中版本的最近直接子版本或最近任务产物
 - 矩形 mask 工具迁入基准图面板，结果图只负责查看输出

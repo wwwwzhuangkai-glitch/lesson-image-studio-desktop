@@ -72,9 +72,12 @@ Lesson Image Studio 的页面首先应该像“工作台”，而不是“展示
   - 顶栏：返回按钮 + 全局 `AppTopbar`
   - 主区：单列卡片堆
 - 当前分区：
-  - 密钥
+  - 默认 Provider
+  - 当前 provider 的专属配置
   - 外观
-  - 默认参数
+  - 通用默认参数
+- 选中 TAL 时不展示 OpenAI key / base URL / model
+- 默认导出格式和并发上限是通用配置，不归属 OpenAI
 
 ### UtilityDrawer
 
@@ -138,4 +141,28 @@ Lesson Image Studio 的页面首先应该像“工作台”，而不是“展示
 
 1. 继续打磨 4 页的结构感和现代感
 2. 让 `SettingsPage` 从“已有设置页”演进成更成熟的本地设置中心
-3. 为多 provider 接入预留清晰的设置入口，但不把编辑页做成 provider 配置台
+3. 让 `OwnerOverviewPage` 和 `ImageEditorPage` 更像专业内部教研工具
+
+## 8. 给视觉重构 AI 的 brief
+
+可以大胆改：
+
+- 布局密度、视觉层级、控件样式、空态、缩略图、面板质感
+- 当前 UI 的具体圆角、间距、按钮样式、卡片观感
+- Owner 总览、编辑页、SettingsPage 的呈现方式
+
+必须保留：
+
+- 单屏工作台，不做长网页或营销页
+- 4 个正式页面，不新增第 5 个正式页面
+- 编辑页保持左版本轨 / 双图对照 / 底部控制台
+- UtilityDrawer 继续承载任务、事件、回收站、模板等次级入口
+- SettingsPage 只做本地设置，不变成云端团队配置中心
+- provider 配置不能进入编辑页主流程
+
+视觉验收重点：
+
+- 双图区左右标题栏和图片区齐平，无遮挡、无按钮压图
+- mask 框选入口可见、可点、不会改变结果图职责
+- SettingsPage 在 TAL provider 下不出现 OpenAI 专属配置
+- 导出格式和并发上限保持通用默认参数

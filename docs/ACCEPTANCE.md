@@ -48,8 +48,16 @@
 31. Prompt、provider、quality、尺寸说明、导出、发布、定稿动作都在底部控制台，不回到左栏。
 32. 矩形 mask 工具在基准图面板工具条内；结果图区域不承担 mask 编辑。
 
+## 下一轮 UI 视觉重构验收重点
+
+33. 双图区左右标题栏和图片区必须齐平，不能出现工具按钮遮挡图片或空态。
+34. 基准图 mask 入口必须可见、可点；创建 mask 后仍以当前选中版本作为提交基准。
+35. SettingsPage 选中 TAL provider 时不展示 OpenAI Key、base URL、model；选中 OpenAI 时才展示 OpenAI 专属配置。
+36. 默认导出格式和并发任务上限显示为通用默认参数，不归属 OpenAI 官方配置。
+37. UI 大改不能改动 provider 数据流：settings -> job -> adapter -> storage -> version -> event。
+
 ## 后续 Gemini Provider 验收重点
 
-33. TAL `gemini-3.1-flash-image` adapter 可以接文生图 / 图生图；其 `chat/completions` 差异被封装在 adapter 内，而不是扩散到前端页面。
-34. TAL `gemini-3-pro-image` 与 flash adapter 复用 Gemini 解析逻辑，并保持独立 provider id。
-35. TAL `gpt-image-2` 和 TAL Gemini provider 共享固定公司兼容层地址和同一个 key。
+38. TAL `gemini-3.1-flash-image` adapter 可以接文生图 / 图生图；其 `chat/completions` 差异被封装在 adapter 内，而不是扩散到前端页面。
+39. TAL `gemini-3-pro-image` 与 flash adapter 复用 Gemini 解析逻辑，并保持独立 provider id。
+40. TAL `gpt-image-2` 和 TAL Gemini provider 共享固定公司兼容层地址和同一个 key。

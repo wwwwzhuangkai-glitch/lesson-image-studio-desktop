@@ -43,19 +43,20 @@
 
 ## P1（下一轮主线）
 
-- 文档继续与真实实现收口，避免 `ARCHITECTURE / UI_WORKBENCH / AI_HANDOFF / SETTINGS_SPEC` 再次漂移
-- 接入 TAL `gemini-3.1-flash-image`
-- 接入 TAL `gemini-3-pro-image`
+- UI 视觉重构：OwnerOverviewPage、ImageEditorPage、SettingsPage
+- 双图工作台视觉修正：左右齐平、无遮挡、mask 入口稳定可用
+- SettingsPage 信息架构继续打磨：provider 专属配置与通用默认参数分离
+- TAL `gpt-image-2` 数据流回归：settings -> job -> adapter -> storage -> version -> event
 - 保留当前官方 OpenAI 路径，不做替换式重构
-- 明确“当前前端不支持 TAL 多图输入”的产品边界
-- 补采 TAL `gemini` 的 `stream=true` 原始样本与失败样本
+- 继续明确“当前前端不支持 TAL 多图输入”的产品边界
 
 ## P2（下一轮候选）
 
 - 路由级代码拆分，解决 `build` 的大 chunk 警告
 - 补前端测试覆盖（useTheme / Dialog / 更多 provider 分支）
-- OwnerOverviewPage 在现有 token 下进一步打磨卡片视觉 / 缩略图处理
-- ImageEditorPage 在双图工作台骨架下深化版本轨来源徽标、定稿提示层级、结果图空态
+- 接入 TAL `gemini-3.1-flash-image`
+- 接入 TAL `gemini-3-pro-image`
+- 补采 TAL `gemini` 的 `stream=true` 原始样本与失败样本
 - 代码债：
   - `uiStore.ts` 的 `Date.now()+Math.random()` ID
   - `refetchInterval` 的 3 处 3000ms + 1 处 5000ms

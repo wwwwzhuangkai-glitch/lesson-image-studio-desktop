@@ -1,5 +1,36 @@
 # AI Handoff
 
+## 0. 下一轮短版
+
+下一位 AI 的主任务是 **UI 视觉重构**，不是继续重写 provider。
+
+当前状态：
+
+- Provider MVP 已接入官方 OpenAI 和 TAL `gpt-image-2`
+- SettingsPage 已按 provider 分组：OpenAI 配置只在选中 OpenAI 时展示；TAL 只配置公司认证值；导出格式和并发上限是通用默认参数
+- 编辑页已经形成“左版本轨 + 基准图/结果图双图对照 + 底部控制台”的工作台骨架
+
+下一轮目标：
+
+- 可以大胆重做视觉、密度、层级、控件样式和页面质感
+- 重点让 `OwnerOverviewPage`、`ImageEditorPage`、`SettingsPage` 更像专业内部教研工具
+- 不要求保留当前视觉细节，当前样式只是功能骨架
+
+必须保护：
+
+- 不改 `Owner -> ImageItem -> ImageVersion` 主模型
+- 不重写 `JobRunner`、provider registry、TAL adapter
+- 不删除官方 OpenAI 路径
+- 不把 TAL 配置拆成多套地址 / key
+- 不把 provider 配置塞进编辑页主流程
+
+UI 改完至少跑：
+
+- `cd frontend && npm run lint`
+- `cd frontend && npm run test`
+- `cd frontend && npm run build`
+- `cd backend && uv run pytest`（如果碰到任务、settings、provider、version、mask 相关代码）
+
 ## 1. 先读什么
 
 后续无论是 AI 还是工程师接力，建议先读：
@@ -26,7 +57,7 @@
 - 工作台不能退化成长网页
 - UtilityDrawer 是统一次级信息入口，不要再把任务/事件/回收站拆回多个浮层
 - 模板当前在 UtilityDrawer 的 `templates` tab，不要随手做回嵌入式长面板
-- 编辑页保持“左版本轨 + 双图对照 + 底部控制台”，不要随手做回长表单或三栏检视器
+- 编辑页保持“左版本轨 + 双图对照 + 底部控制台”，不要随手做回长表单或旧检视器结构
 - 左版本轨只做导航与上下文，不承载 prompt、参数、导出、发布
 
 ## 3. 当前实现和下一阶段方向不要混淆
@@ -41,10 +72,10 @@
 下一阶段方向：
 
 - 不删当前官方 OpenAI 路径
-- 在现有 provider / adapter 架构上继续接 Gemini provider
+- UI 视觉重构优先，Provider / TAL 数据流作为验收护栏
 - `SettingsPage` 已有默认 provider + 本地服务配置中心
 - 公司模型共享一套公司 AI 服务配置
-- 当前已拿到 TAL `gpt-image-2`、`gemini-3.1-flash-image`、`gemini-3-pro-image` 的真实成功样本
+- Gemini provider 暂放后续，不作为下一轮第一目标
 
 ## 4. 常见改动入口
 
@@ -97,7 +128,7 @@
 
 ### 编辑页双图数据关系
 
-当前 `ImageEditorPage` 已从“三栏检视器”重构为：
+当前 `ImageEditorPage` 已重构为：
 
 - 左栏：版本轨、当前选中版本信息、定稿状态、任务 / 事件 / 回收站 / 模板入口
 - 右上：基准图 / 结果图双图对照
@@ -176,23 +207,22 @@ Provider MVP 已接 TAL `gpt-image-2`。后续接 `gemini-3.1-flash-image` 和 `
 如果下一轮是 AI 接着做，建议按这个顺序：
 
 1. 先读 `git status` 和最近 commit，确认变更边界
-2. 先跑：
-   - `cd backend && uv run pytest`
-   - `cd frontend && npm run test`
-   - `cd frontend && npm run build`
-3. 然后确认当前任务属于哪一类：
-   - 当前实现维护
-   - 下一阶段文档推进
-   - 下一阶段 provider / Settings / UI 开发
+2. 先看 `docs/UI_WORKBENCH.md`，确认这次是视觉重构，不是 provider 重构
+3. UI 修改优先从 `OwnerOverviewPage`、`ImageEditorPage`、`SettingsPage` 入手
+4. 修改时把 TAL 当作已有数据流保护：
+   - Settings 只配置 TAL key
+   - adapter 固定 TAL base URL
+   - 新任务入队快照 provider
+   - 图改图尺寸由后端复算并落库
+5. 收尾跑前端质量门；如果碰到后端数据流，再跑后端 pytest
 
 ## 8. 适合下一轮继续做的主题
 
-- TAL `gemini-3.1-flash-image` adapter
-- TAL `gemini-3-pro-image` adapter
-- 文档与真实实现继续对齐
+- UI 视觉重构：页面质感、控件层级、双图工作台、Settings 信息架构
+- TAL 全链路回归：settings -> job -> adapter -> storage -> version -> event
 - 路由级代码拆分，减小前端 chunk
 - 更完整的前端测试覆盖
-- OwnerOverviewPage 与 ImageEditorPage 继续打磨视觉层级
+- Gemini provider 接入放到 UI 主线之后
 - 代码债：`uiStore.ts` 的 ID 生成、轮询频率
 
 ## 9. 当前 vs 未来
