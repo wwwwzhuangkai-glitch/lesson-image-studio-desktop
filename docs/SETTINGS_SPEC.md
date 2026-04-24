@@ -73,14 +73,18 @@ Provider MVP 已按下面的产品共识落地：
 - 改动写入 `AppSettings.default_provider`
 - 已创建任务不受后续切换影响
 
-### OpenAI API Key
+### OpenAI 官方配置
 
+- 仅在默认 provider 选中 `openai_official` 时展示
 - 支持保存 / 更新 / 清空（清空走 `InputDialog` 二次确认，需要键入「清空」二字）
 - 状态 badge 只展示状态和来源，不展示任何字符
 - 保存后不会再从接口回传 key
+- `openai_base_url`：留空走官方 endpoint；非空填自建代理或 OpenAI 兼容端点完整 URL
+- `openai_model`：默认 `gpt-image-2`；改动只影响后续新建任务，任务入队后使用当时快照的模型名
 
 ### 公司 AI 服务配置
 
+- 仅在默认 provider 选中 `tal_gpt_image_2` 时展示
 - 公司兼容层地址由应用固定使用，不在 SettingsPage 暴露输入框
 - `tal_service_api_key` 单独保存 / 清空，格式 `appId:apiKey`
 - 状态 badge 只展示是否已配置，不展示任何字符
@@ -92,12 +96,11 @@ Provider MVP 已按下面的产品共识落地：
 - 改动即时应用到 `document.documentElement.dataset.theme`，并 `PUT /api/settings`
 - 顶栏右上角的太阳 / 月亮图标与外观分区的 mode 等效
 
-### 默认参数
+### 通用默认参数
 
-- `openai_base_url`：留空走官方 endpoint；非空填自建代理或 OpenAI 兼容端点完整 URL
-- `openai_model`：默认 `gpt-image-2`；改动只影响后续新建任务，任务入队后使用当时快照的模型名
 - `default_export_format`：`png / jpeg / webp`
 - `max_concurrent_jobs`：`queued + running` 的全局上限，超过即拒绝新任务
+- 这两个字段是 provider 无关的全局工作台配置，不归属 OpenAI 官方配置
 
 ## 6. 当前 API 规格
 

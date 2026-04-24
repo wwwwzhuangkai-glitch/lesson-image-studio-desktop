@@ -85,6 +85,7 @@ it('saves provider without rendering TAL base URL settings', async () => {
   renderSettingsPage()
 
   expect(await screen.findByText('默认 Provider')).toBeInTheDocument()
+  expect(screen.getByText('OpenAI Key 与连接')).toBeInTheDocument()
   fireEvent.click(screen.getByRole('button', { name: 'TAL gpt-image-2' }))
 
   await waitFor(() => {
@@ -93,6 +94,9 @@ it('saves provider without rendering TAL base URL settings', async () => {
     })
   })
 
+  expect(screen.queryByText('OpenAI Key 与连接')).not.toBeInTheDocument()
+  expect(screen.queryByText('OpenAI base URL')).not.toBeInTheDocument()
+  expect(screen.getByText('导出与任务上限')).toBeInTheDocument()
   expect(screen.queryByText('公司服务根地址')).not.toBeInTheDocument()
   expect(screen.queryByRole('button', { name: '保存公司服务地址' })).not.toBeInTheDocument()
 })
@@ -100,6 +104,8 @@ it('saves provider without rendering TAL base URL settings', async () => {
 it('saves TAL key without rendering the secret after success', async () => {
   renderSettingsPage()
 
+  expect(await screen.findByText('默认 Provider')).toBeInTheDocument()
+  fireEvent.click(screen.getByRole('button', { name: 'TAL gpt-image-2' }))
   await screen.findByText('TAL gpt-image-2 配置')
   const keyInput = screen.getByLabelText('认证值')
   fireEvent.change(keyInput, { target: { value: 'app-id:api-secret' } })
@@ -110,4 +116,30 @@ it('saves TAL key without rendering the secret after success', async () => {
     expect(keyInput).toHaveValue('')
   })
   expect(screen.queryByText('app-id:api-secret')).not.toBeInTheDocument()
+})
+
+it('keeps export format and concurrency as general defaults for TAL provider', async () => {
+  currentSettings = {
+    ...currentSettings,
+    default_provider: 'tal_gpt_image_2',
+    default_export_format: 'png',
+    max_concurrent_jobs: 2,
+  }
+  renderSettingsPage()
+
+  expect(await screen.findByText('TAL gpt-image-2 配置')).toBeInTheDocument()
+  expect(screen.queryByText('OpenAI Key 与连接')).not.toBeInTheDocument()
+  expect(screen.queryByText('OpenAI base URL')).not.toBeInTheDocument()
+  expect(screen.getByText('导出与任务上限')).toBeInTheDocument()
+
+  fireEvent.change(screen.getByLabelText('默认导出格式'), { target: { value: 'webp' } })
+  fireEvent.change(screen.getByLabelText('并发任务上限'), { target: { value: '4' } })
+  fireEvent.click(screen.getByRole('button', { name: '保存通用默认参数' }))
+
+  await waitFor(() => {
+    expect(apiMocks.updateAppSettings.mock.calls.map(([patch]) => patch)).toContainEqual({
+      default_export_format: 'webp',
+      max_concurrent_jobs: 4,
+    })
+  })
 })

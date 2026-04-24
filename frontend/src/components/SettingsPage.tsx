@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import type { ChangeEvent, FormEvent } from 'react'
+import type { FormEvent } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 
@@ -109,6 +109,9 @@ export function SettingsPage() {
   })
 
   const settings: AppSettings | undefined = query.data
+  const activeProvider = providerDraft
+  const showOpenAISettings = activeProvider === 'openai_official'
+  const showTalSettings = activeProvider === 'tal_gpt_image_2'
 
   if (!settings) {
     return (
@@ -138,26 +141,27 @@ export function SettingsPage() {
     updateMutation.mutate({ theme_mode: next })
   }
 
-  function handleExportChange(event: ChangeEvent<HTMLSelectElement>) {
-    const next = event.target.value as ExportFormat
-    setExportDraft(next)
-    updateMutation.mutate({ default_export_format: next })
-  }
-
   function handleProviderChange(next: ProviderId) {
     if (next === settings?.default_provider) return
     setProviderDraft(next)
     updateMutation.mutate({ default_provider: next })
   }
 
-  function handleSaveDefaults(event: FormEvent) {
+  function handleSaveOpenAIDefaults(event: FormEvent) {
     event.preventDefault()
     const trimmedModel = modelDraft.trim() || 'gpt-image-2'
     const normalizedUrl = baseUrlDraft.trim()
-    const clampedConcurrency = Math.min(10, Math.max(1, Math.round(concurrencyDraft)))
     updateMutation.mutate({
       openai_base_url: normalizedUrl,
       openai_model: trimmedModel,
+    })
+  }
+
+  function handleSaveGeneralDefaults(event: FormEvent) {
+    event.preventDefault()
+    const clampedConcurrency = Math.min(10, Math.max(1, Math.round(concurrencyDraft)))
+    updateMutation.mutate({
+      default_export_format: exportDraft,
       max_concurrent_jobs: clampedConcurrency,
     })
   }
@@ -254,107 +258,141 @@ export function SettingsPage() {
             </div>
           </section>
 
-          <section className="panel settings-section">
-            <div>
-              <div className="eyebrow">密钥</div>
-              <h2>OpenAI API Key</h2>
-            </div>
-            <div className="settings-inline">
-              <span className={`key-status-badge${settings.has_openai_api_key ? ' configured' : ''}`}>
-                {settings.openai_api_key_source === 'app_settings'
-                  ? '已配置 · 本地'
-                  : settings.openai_api_key_source === 'env'
-                    ? '已配置 · 来自环境变量'
-                    : '未配置'}
-              </span>
-              {settings.openai_api_key_source === 'app_settings' ? (
-                <button
-                  type="button"
-                  className="ghost-button small danger"
-                  disabled={clearKeyMutation.isPending}
-                  onClick={() => void handleClearKey()}
-                >
-                  清空密钥
-                </button>
-              ) : null}
-              {settings.openai_api_key_source === 'env' ? (
-                <span className="settings-help">
-                  环境变量 key 不能从 UI 清空，请修改 <code>.env</code> 或在上方填新 key 覆盖。
+          {showOpenAISettings ? (
+            <section className="panel settings-section">
+              <div>
+                <div className="eyebrow">OpenAI 官方</div>
+                <h2>OpenAI Key 与连接</h2>
+              </div>
+              <div className="settings-inline">
+                <span className={`key-status-badge${settings.has_openai_api_key ? ' configured' : ''}`}>
+                  {settings.openai_api_key_source === 'app_settings'
+                    ? '已配置 · 本地'
+                    : settings.openai_api_key_source === 'env'
+                      ? '已配置 · 来自环境变量'
+                      : '未配置'}
                 </span>
-              ) : null}
-            </div>
-            <form className="settings-row" onSubmit={handleSaveKey}>
-              <label>
-                <span className="field-label">新的 Key</span>
-                <input
-                  value={keyDraft}
-                  onChange={(event) => setKeyDraft(event.target.value)}
-                  placeholder="sk-..."
-                  autoComplete="off"
-                  spellCheck={false}
-                  type="password"
-                />
-              </label>
-              <div className="settings-inline">
-                <button
-                  type="submit"
-                  className="primary-button"
-                  disabled={setKeyMutation.isPending || !keyDraft.trim()}
-                >
-                  {settings.has_openai_api_key ? '更新 Key' : '保存 Key'}
-                </button>
-                <span className="settings-help">保存后不会再从接口回传任何字符。</span>
+                {settings.openai_api_key_source === 'app_settings' ? (
+                  <button
+                    type="button"
+                    className="ghost-button small danger"
+                    disabled={clearKeyMutation.isPending}
+                    onClick={() => void handleClearKey()}
+                  >
+                    清空密钥
+                  </button>
+                ) : null}
+                {settings.openai_api_key_source === 'env' ? (
+                  <span className="settings-help">
+                    环境变量 key 不能从 UI 清空，请修改 <code>.env</code> 或在上方填新 key 覆盖。
+                  </span>
+                ) : null}
               </div>
-            </form>
-          </section>
+              <form className="settings-row" onSubmit={handleSaveKey}>
+                <label>
+                  <span className="field-label">新的 Key</span>
+                  <input
+                    value={keyDraft}
+                    onChange={(event) => setKeyDraft(event.target.value)}
+                    placeholder="sk-..."
+                    autoComplete="off"
+                    spellCheck={false}
+                    type="password"
+                  />
+                </label>
+                <div className="settings-inline">
+                  <button
+                    type="submit"
+                    className="primary-button"
+                    disabled={setKeyMutation.isPending || !keyDraft.trim()}
+                  >
+                    {settings.has_openai_api_key ? '更新 Key' : '保存 Key'}
+                  </button>
+                  <span className="settings-help">保存后不会再从接口回传任何字符。</span>
+                </div>
+              </form>
+              <form className="settings-row" onSubmit={handleSaveOpenAIDefaults}>
+                <label>
+                  <span className="field-label">OpenAI base URL</span>
+                  <input
+                    value={baseUrlDraft}
+                    onChange={(event) => setBaseUrlDraft(event.target.value)}
+                    placeholder="留空走官方；自建代理或兼容端点填完整 URL"
+                    spellCheck={false}
+                  />
+                </label>
+                <label>
+                  <span className="field-label">生图模型</span>
+                  <input
+                    value={modelDraft}
+                    onChange={(event) => setModelDraft(event.target.value)}
+                    placeholder="gpt-image-2"
+                    spellCheck={false}
+                  />
+                  <span className="settings-help">只用于 OpenAI 官方 provider；新任务入队时会快照模型。</span>
+                </label>
+                <div className="settings-inline">
+                  <button
+                    type="submit"
+                    className="primary-button"
+                    disabled={updateMutation.isPending}
+                  >
+                    保存 OpenAI 连接
+                  </button>
+                </div>
+              </form>
+            </section>
+          ) : null}
 
-          <section className="panel settings-section">
-            <div>
-              <div className="eyebrow">公司 AI 服务</div>
-              <h2>TAL gpt-image-2 配置</h2>
-              <p className="settings-help">
-                公司兼容层地址由应用固定使用，老师只需要配置 appId:apiKey。
-              </p>
-            </div>
-            <div className="settings-inline">
-              <span className={`key-status-badge${settings.has_tal_service_api_key ? ' configured' : ''}`}>
-                {settings.has_tal_service_api_key ? '已配置 · 本地' : '未配置'}
-              </span>
-              {settings.has_tal_service_api_key ? (
-                <button
-                  type="button"
-                  className="ghost-button small danger"
-                  disabled={clearTalKeyMutation.isPending}
-                  onClick={() => void handleClearTalKey()}
-                >
-                  清空认证值
-                </button>
-              ) : null}
-            </div>
-            <form className="settings-row" onSubmit={handleSaveTalKey}>
-              <label>
-                <span className="field-label">认证值</span>
-                <input
-                  value={talKeyDraft}
-                  onChange={(event) => setTalKeyDraft(event.target.value)}
-                  placeholder="appId:apiKey"
-                  autoComplete="off"
-                  spellCheck={false}
-                  type="password"
-                />
-              </label>
-              <div className="settings-inline">
-                <button
-                  type="submit"
-                  className="primary-button"
-                  disabled={setTalKeyMutation.isPending || !talKeyDraft.trim()}
-                >
-                  {settings.has_tal_service_api_key ? '更新公司认证值' : '保存公司认证值'}
-                </button>
-                <span className="settings-help">保存后不会再从接口回传任何字符。</span>
+          {showTalSettings ? (
+            <section className="panel settings-section">
+              <div>
+                <div className="eyebrow">公司 AI 服务</div>
+                <h2>TAL gpt-image-2 配置</h2>
+                <p className="settings-help">
+                  公司兼容层地址由应用固定使用，老师只需要配置 appId:apiKey。
+                </p>
               </div>
-            </form>
-          </section>
+              <div className="settings-inline">
+                <span className={`key-status-badge${settings.has_tal_service_api_key ? ' configured' : ''}`}>
+                  {settings.has_tal_service_api_key ? '已配置 · 本地' : '未配置'}
+                </span>
+                {settings.has_tal_service_api_key ? (
+                  <button
+                    type="button"
+                    className="ghost-button small danger"
+                    disabled={clearTalKeyMutation.isPending}
+                    onClick={() => void handleClearTalKey()}
+                  >
+                    清空认证值
+                  </button>
+                ) : null}
+              </div>
+              <form className="settings-row" onSubmit={handleSaveTalKey}>
+                <label>
+                  <span className="field-label">认证值</span>
+                  <input
+                    value={talKeyDraft}
+                    onChange={(event) => setTalKeyDraft(event.target.value)}
+                    placeholder="appId:apiKey"
+                    autoComplete="off"
+                    spellCheck={false}
+                    type="password"
+                  />
+                </label>
+                <div className="settings-inline">
+                  <button
+                    type="submit"
+                    className="primary-button"
+                    disabled={setTalKeyMutation.isPending || !talKeyDraft.trim()}
+                  >
+                    {settings.has_tal_service_api_key ? '更新公司认证值' : '保存公司认证值'}
+                  </button>
+                  <span className="settings-help">保存后不会再从接口回传任何字符。</span>
+                </div>
+              </form>
+            </section>
+          ) : null}
 
           <section className="panel settings-section">
             <div>
@@ -407,34 +445,17 @@ export function SettingsPage() {
 
           <section className="panel settings-section">
             <div>
-              <div className="eyebrow">默认参数</div>
-              <h2>OpenAI 连接与导出</h2>
+              <div className="eyebrow">通用默认参数</div>
+              <h2>导出与任务上限</h2>
             </div>
-            <form className="settings-row" onSubmit={handleSaveDefaults}>
-              <label>
-                <span className="field-label">OpenAI base URL</span>
-                <input
-                  value={baseUrlDraft}
-                  onChange={(event) => setBaseUrlDraft(event.target.value)}
-                  placeholder="留空走官方；自建代理或兼容端点填完整 URL"
-                  spellCheck={false}
-                />
-              </label>
-              <label>
-                <span className="field-label">生图模型</span>
-                <input
-                  value={modelDraft}
-                  onChange={(event) => setModelDraft(event.target.value)}
-                  placeholder="gpt-image-2"
-                  spellCheck={false}
-                />
-                <span className="settings-help">
-                  默认为 gpt-image-2。改动会立即应用到后续所有 AI 任务。
-                </span>
-              </label>
+            <form className="settings-row" onSubmit={handleSaveGeneralDefaults}>
               <label>
                 <span className="field-label">默认导出格式</span>
-                <select value={exportDraft} onChange={handleExportChange}>
+                <select
+                  aria-label="默认导出格式"
+                  value={exportDraft}
+                  onChange={(event) => setExportDraft(event.target.value as ExportFormat)}
+                >
                   {EXPORT_OPTIONS.map((value) => (
                     <option key={value} value={value}>
                       {value.toUpperCase()}
@@ -449,6 +470,7 @@ export function SettingsPage() {
                 <span className="field-label">并发任务上限</span>
                 <input
                   type="number"
+                  aria-label="并发任务上限"
                   min={1}
                   max={10}
                   step={1}
@@ -465,7 +487,7 @@ export function SettingsPage() {
                   className="primary-button"
                   disabled={updateMutation.isPending}
                 >
-                  保存默认参数
+                  保存通用默认参数
                 </button>
               </div>
             </form>
