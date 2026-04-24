@@ -35,8 +35,9 @@ export function CanvasWorkbench({
   onSelectionModeChange,
 }: CanvasWorkbenchProps) {
   const { image, error: baseImageError } = useImageElement(baseImageUrl)
+  const { image: resultImage, error: resultImageError } = useImageElement(resultImageUrl ?? null)
   const [resultErrorUrl, setResultErrorUrl] = useState<string | null>(null)
-  const resultError = resultImageUrl !== null && resultImageUrl === resultErrorUrl
+  const resultError = resultImageError || (resultImageUrl !== null && resultImageUrl === resultErrorUrl)
   const [draft, setDraft] = useState<RectGeometry | null>(null)
   const [startPoint, setStartPoint] = useState<{ x: number; y: number } | null>(null)
   const [showSelection, setShowSelection] = useState(true)
@@ -95,6 +96,17 @@ export function CanvasWorkbench({
       scale,
     }
   }, [image, containerSize])
+
+  const resultDimensions = useMemo(() => {
+    if (!resultImage) return null
+    const maxWidth = containerSize.width
+    const maxHeight = containerSize.height
+    const scale = Math.min(1, maxWidth / resultImage.width, maxHeight / resultImage.height)
+    return {
+      width: Math.round(resultImage.width * scale),
+      height: Math.round(resultImage.height * scale),
+    }
+  }, [resultImage, containerSize])
 
   const activeRect = showSelection ? draft ?? selection : null
   const toggleBackground = () => setBackgroundMode((value) => (value === 'checker' ? 'solid' : 'checker'))
@@ -229,8 +241,17 @@ export function CanvasWorkbench({
 
       <ImagePane title="结果图" backgroundMode={backgroundMode} onToggleBackground={toggleBackground}>
         <div className={`image-pane-body ${backgroundMode}`}>
-          {resultImageUrl && !resultError ? (
-            <img className="result-image" src={resultImageUrl} alt="结果图" onError={() => setResultErrorUrl(resultImageUrl)} />
+          {resultImageUrl && !resultError && resultDimensions ? (
+            <img
+              className="result-image"
+              src={resultImageUrl}
+              alt="结果图"
+              width={resultDimensions.width}
+              height={resultDimensions.height}
+              onError={() => setResultErrorUrl(resultImageUrl)}
+            />
+          ) : resultImageUrl && !resultError ? (
+            <div className="canvas-empty compact"><p>正在加载结果图…</p></div>
           ) : (
             <div className="canvas-empty compact">
               <p>{resultError ? '结果图加载失败，请检查图片文件。' : resultEmptyLabel}</p>

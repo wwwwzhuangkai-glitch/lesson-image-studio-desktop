@@ -172,7 +172,7 @@ export function ImageEditorPage() {
     mutationFn: ({ versionId, title }: { versionId: string; title?: string }) =>
       duplicateVersionToImageItem(versionId, title),
     onSuccess: async (detail) => {
-      pushNotice({ title: '已复制为新图片项起点' })
+      pushNotice({ title: '已复制为新图片项' })
       await invalidate()
       navigate(`/items/${detail.image_item.id}`)
     },
@@ -288,7 +288,7 @@ export function ImageEditorPage() {
       return
     }
     const title = await inputDialog.prompt({
-      title: '复制为新图片项起点',
+      title: '复制为新图片项',
       message: '会在当前 Owner 下新建一个图片项，并以选中版本为新版本树的根。',
       defaultValue: `${detailQuery.data.image_item.title} - 副本`,
       placeholder: '新图片项标题',
@@ -503,7 +503,7 @@ export function ImageEditorPage() {
                   disabled={!selectedVersion || duplicateMutation.isPending || pendingAction !== null}
                   onClick={handleDuplicateFromSelected}
                 >
-                  复制为新图片项起点
+                  复制为新图片项
                 </button>
                 <button
                   className="ghost-button danger"
