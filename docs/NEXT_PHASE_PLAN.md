@@ -2,12 +2,12 @@
 
 ## 1. 目标
 
-下一阶段的目标不是改数据主模型，而是在不动核心边界的前提下，把产品推进到“更成熟的内部教研工作台”，并把 AI 调用从“单一官方 OpenAI 路径”演进到“多 provider / 多 adapter 架构”。
+下一阶段的目标不是改数据主模型，而是在不动核心边界的前提下，把产品推进到“更成熟的内部教研工作台”，并在 Provider MVP 基础上继续扩展公司模型。
 
 本阶段产出包含三条线：
 
-- 设置体系从“已有本地设置页”演进成“provider 配置中心”
-- 新增 provider / adapter 架构，同时保留官方 OpenAI 路径
+- 设置体系继续作为 provider 配置中心
+- 在已有 provider / adapter 架构上新增 Gemini provider，同时保留官方 OpenAI 路径
 - UI 继续打磨，偏重现代感、结构感和工作台质感
 
 ## 2. 页面结构
@@ -40,10 +40,10 @@
 ## 4. 已确认的 provider 方向
 
 - 当前官方 OpenAI 方式必须保留
-- 下一阶段新增 provider / adapter，而不是替换现有实现
+- 已新增 provider / adapter 架构，而不是替换官方 OpenAI
 - provider 由 SettingsPage 的全局默认项控制
 - TAL 模型共享一套公司 AI 服务配置：
-  - 一个共享 `base_url`
+  - 固定兼容层地址：`http://ai-service.tal.com/openai-compatible/v1`
   - 一个共享认证值
   - 不按模型拆两套配置
 - TAL 多图输入当前不做前端功能
@@ -57,13 +57,10 @@
 下一阶段建议按下面顺序推进：
 
 1. 先完成 docs 与真实实现的统一
-2. 再抽 provider / adapter 底座
-3. 再扩 `SettingsPage`：默认 provider + 公司 AI 服务配置
-4. 接入 TAL `gpt-image-2`
-5. 接入 TAL `gemini-3.1-flash-image`
-6. 接入 TAL `gemini-3-pro-image`
-7. 在 provider 结构稳定后继续打磨 `OwnerOverviewPage` 和 `ImageEditorPage`
-8. `chunk` 拆分仍然是 P2，并行处理但不是最高优先级产品目标
+2. 接入 TAL `gemini-3.1-flash-image`
+3. 接入 TAL `gemini-3-pro-image`
+4. 在 provider 结构稳定后继续打磨 `OwnerOverviewPage` 和 `ImageEditorPage`
+5. `chunk` 拆分仍然是 P2，并行处理但不是最高优先级产品目标
 
 ## 6. UI 约束
 
@@ -87,12 +84,12 @@
 详细设置规格请看 `docs/SETTINGS_SPEC.md`。  
 不可动摇规则请看 `docs/DECISIONS.md`。
 
-## 8. 本轮已交付摘要（归档）
+## 8. 已交付摘要（归档）
 
-本轮（2026-04-23）已完成：
+2026-04-23 已完成：
 
 - 后端 `AppSettings` 单例模型 + alembic 迁移（含默认行）+ service 层 + 4 条 `/api/settings*` 路由
-- `JobRunner` 当前仍围绕官方 OpenAI 路径运行
+- 当时 `JobRunner` 仍围绕官方 OpenAI 路径运行
 - 跨图片项全局并发上限 `max_concurrent_jobs`（默认 2）
 - 前端 4 套主题 token 系统
 - `index.css` token 化，`index.html` inline 脚本防首帧闪白
@@ -101,4 +98,17 @@
 - `InputDialog` + `PresetFormDialog` 取代所有 `window.prompt`
 - 模板已迁移到 `UtilityDrawer` 的 `templates` tab
 
-当前 repo 已具备承接 provider 接入的工作台骨架，但尚未有正式 adapter 层。
+2026-04-24 Provider MVP 已完成：
+
+- 修复版本删除规则：有任何子版本的版本都不能删除，即使子版本已删除
+- 无效图片上传先验证再落盘，返回 400 且不留下坏文件
+- 新增 provider adapter 层：`openai_official` / `tal_gpt_image_2`
+- `JobRunner` 改为调用 adapter，并在新任务中快照 `default_provider`
+- `SettingsPage` 新增默认 provider 和 TAL 公司服务配置
+- TAL `gpt-image-2` adapter 固定使用 `http://ai-service.tal.com/openai-compatible/v1`
+- Auto Size / Snapshot 修复已完成：
+  - 默认 `quality = high`
+  - 主流程提交 `size_mode = auto`
+  - TAL 图改图 auto 会按底图宽高归一化后显式传 `size`
+  - 文生图 auto 不传 `size`
+  - 官方 OpenAI 任务使用入队时的模型快照

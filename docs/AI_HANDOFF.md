@@ -34,14 +34,14 @@
 
 - 已有 4 页工作台
 - 已有 `AppSettings`
-- 当前真正接入的 AI 调用仍以官方 OpenAI 兼容路径为主
+- 当前 AI 调用已通过 provider adapter 进入官方 OpenAI 或 TAL `gpt-image-2`
 - 模板当前在 `UtilityDrawer` 的 `templates` tab
 
 下一阶段方向：
 
 - 不删当前官方 OpenAI 路径
-- 新增 provider / adapter 架构
-- `SettingsPage` 演进成默认 provider + 本地服务配置中心
+- 在现有 provider / adapter 架构上继续接 Gemini provider
+- `SettingsPage` 已有默认 provider + 本地服务配置中心
 - 公司模型共享一套公司 AI 服务配置
 - 当前已拿到 TAL `gpt-image-2`、`gemini-3.1-flash-image`、`gemini-3-pro-image` 的真实成功样本
 
@@ -80,21 +80,23 @@
 ## 5. 容易踩坑的点
 
 - `config.py::Settings` 和 `models.py::AppSettings` 不要混淆
-- 当前 `JobRunner._load_openai_runtime` 仍有官方 OpenAI 的兼容合并逻辑
+- `JobRunner` 不直接放 provider HTTP/SDK 细节，provider 差异收在 `services/providers/*`
+- 尺寸策略在 `services/image_sizes.py`，不要把归一化规则散落到 adapter 或页面里
+- 官方 OpenAI 的模型名在任务创建时快照到 `EditJob.model`；key/base URL 不快照
 - Gemini 家族当前已验证过 `flash-image` 和 `pro-image` 两个模型名，但 `stream=true` 还没有真实样本
 - 不要把 `VersionTree` 误改成跨图片项树
 - `duplicate-to-image-item` 不是“建立跨树父子关系”，而是“复制出新的根版本”
 - `OPENAI_API_KEY` 缺失时不要生成假图
 - 前端错误提示要直接显示后端 `detail`
-- `AppSettings` 接口绝不回传 `openai_api_key` / `masked_openai_api_key` 任何字符
+- `AppSettings` 接口绝不回传 `openai_api_key` / `tal_service_api_key` / masked key 任何字符
 - 前端主题切换必须三件套同步：Zustand + localStorage + `PUT /api/settings`
 - `CanvasWorkbench` 用 `getComputedStyle(document.documentElement).getPropertyValue('--accent')` 读 token
 - 编辑页的 prompt textarea state 已经迁到 `uiStore.editorPromptText`
 - `uiStore.currentImageItemId` 由 `ImageEditorPage` 的 effect 维护，UtilityDrawer 据此决定模板“载入”是否可用
 
-## 6. 下一阶段 provider 接入建议
+## 6. Provider 接入建议
 
-后续接 TAL `gpt-image-2`、`gemini-3.1-flash-image` 和 `gemini-3-pro-image` 时，推荐不要继续往 `jobs.py` 里硬塞 `if provider == ...` 分支，而是明确做 adapter 层。
+Provider MVP 已接 TAL `gpt-image-2`。后续接 `gemini-3.1-flash-image` 和 `gemini-3-pro-image` 时，继续沿用 adapter 层，不要往 `jobs.py` 里硬塞 provider 分支。
 
 推荐的后端形态：
 
@@ -111,6 +113,7 @@
 
 - 页面和 API 不关心 provider 的请求体差异
 - `EditJob` 仍然是统一队列实体
+- `EditJob.provider / EditJob.model` 是任务级快照；`request_params` 记录尺寸决策元数据
 - adapter 负责把各家 provider 的调用差异归一化成：
   - 输出图片字节
   - 文件名 / mime type
@@ -121,12 +124,16 @@
 ### TAL 公司的接入规则
 
 - 公司模型不是两套服务配置，而是一套共享配置
-- 不要把 TAL `gpt-image-2` 和 TAL `gemini` 各自做一套 `base_url` / `key`
+- TAL 兼容层地址固定为 `http://ai-service.tal.com/openai-compatible/v1`
+- SettingsPage 只配置 TAL key，不配置 TAL base URL
+- 不要把 TAL `gpt-image-2` 和 TAL `gemini` 各自做一套地址 / key
 - 当前前端不做多图输入入口；即使 TAL `gpt-image-2` adapter 先支持多图，UI 也不要提前暴露
+- 当前编辑页不开放图改图尺寸下拉；图改图主流程提交 `size_mode=auto`
+- TAL 图改图前端展示输入图原始规格，后端复算结果才是最终落库值
 
 ### 已知的 TAL 请求形态
 
-这些是接力开发时必须知道的方向，但用户在真正开发那一步还会再提供一次：
+这些是接力开发时必须知道的方向。TAL `gpt-image-2` 已按固定兼容层地址 + adapter 拼 operation path 的口径接入；Gemini 真正开发时用户还会再提供一次细节：
 
 - TAL `gpt-image-2`
   - 文生图：`/openai-compatible/v1/images/generations`
@@ -161,16 +168,13 @@
 
 ## 8. 适合下一轮继续做的主题
 
-- provider 抽象层
-- SettingsPage 的默认 provider 与公司 AI 服务配置
-- TAL `gpt-image-2` adapter
 - TAL `gemini-3.1-flash-image` adapter
 - TAL `gemini-3-pro-image` adapter
 - 文档与真实实现继续对齐
 - 路由级代码拆分，减小前端 chunk
 - 更完整的前端测试覆盖
 - OwnerOverviewPage 与 ImageEditorPage 继续打磨视觉层级
-- 代码债：`CanvasWorkbench.tsx` 的 `any`、`uiStore.ts` 的 ID 生成、轮询频率
+- 代码债：`uiStore.ts` 的 ID 生成、轮询频率
 
 ## 9. 当前 vs 未来
 

@@ -9,9 +9,23 @@
   - `PUT /api/settings`
   - `PUT /api/settings/openai-key`
   - `DELETE /api/settings/openai-key`
+  - `PUT /api/settings/tal-key`
+  - `DELETE /api/settings/tal-key`
 - 主题系统：`graphite / glass` 两套 variant × `light / dark` 两套 mode = 4 套完整 token
 - `default_export_format` 真正接进导出链路
 - 官方 OpenAI 的 key 来源状态可见（`openai_api_key_source`）
+- Provider MVP：
+  - `default_provider`
+  - `openai_official` adapter
+  - `tal_gpt_image_2` adapter
+  - SettingsPage 公司 AI 服务 key 配置
+  - 新任务快照 provider 到 `EditJob.provider`
+- Auto Size / Snapshot 修复：
+  - 任务创建 API 支持 `size_mode = auto / preset / custom`
+  - 默认质量改为 `high`
+  - TAL 图改图 auto 按底图归一化到 `16` 对齐并显式传 size
+  - 文生图 auto 不传 size
+  - 官方 OpenAI 任务使用入队时的模型快照
 - 跨图片项全局并发上限 `max_concurrent_jobs`
 - 7 处 `window.prompt` → `InputDialog` / `PresetFormDialog`
 - 模板搬到 `UtilityDrawer` 的 `templates` tab
@@ -26,11 +40,6 @@
 ## P1（下一轮主线）
 
 - 文档继续与真实实现收口，避免 `ARCHITECTURE / UI_WORKBENCH / AI_HANDOFF / SETTINGS_SPEC` 再次漂移
-- 抽正式的 provider / adapter 层，避免把 TAL 接口逻辑直接堆进 `jobs.py`
-- 扩 `SettingsPage`：
-  - 全局默认 provider
-  - 公司 AI 服务共享配置
-- 接入 TAL `gpt-image-2`
 - 接入 TAL `gemini-3.1-flash-image`
 - 接入 TAL `gemini-3-pro-image`
 - 保留当前官方 OpenAI 路径，不做替换式重构
@@ -40,11 +49,10 @@
 ## P2（下一轮候选）
 
 - 路由级代码拆分，解决 `build` 的大 chunk 警告
-- 补前端测试覆盖（useTheme / Dialog / SettingsPage / provider 相关分支）
+- 补前端测试覆盖（useTheme / Dialog / 更多 provider 分支）
 - OwnerOverviewPage 在现有 token 下进一步打磨卡片视觉 / 缩略图处理
 - ImageEditorPage 在现有 token 下深化版本轨的来源徽标 / 定稿提示层级
 - 代码债：
-  - `CanvasWorkbench.tsx` 的 `any`
   - `uiStore.ts` 的 `Date.now()+Math.random()` ID
   - `refetchInterval` 的 3 处 3000ms + 1 处 5000ms
 

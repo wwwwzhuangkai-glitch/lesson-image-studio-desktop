@@ -57,7 +57,7 @@
 - 后续要做的是新增 provider / adapter，不是覆盖现有实现
 - `default_provider` 应该是 SettingsPage 里的全局默认 provider
 - 公司内部模型不是两套服务配置，而是一套共享的公司 AI 服务配置：
-  - 一个共享 `base_url`
+  - 固定兼容层地址：`http://ai-service.tal.com/openai-compatible/v1`
   - 一个共享认证值
   - 通过不同请求体和模型名切 provider / adapter
 - 计划中的公司 provider 至少包含：

@@ -24,16 +24,25 @@
 17. 点击顶栏月亮 / 太阳图标会同时切换 `data-theme`、写入 localStorage、调用 `PUT /api/settings`。
 18. 前端 `grep -rn "window.prompt" frontend/src/` 返回 0 行。
 
-## 下一阶段（多 provider / 公司模型接入）验收重点
+## Provider MVP 验收重点
 
 19. 新增 provider / adapter 后，官方 OpenAI 路径仍可正常工作，不被删除或替换。
 20. SettingsPage 可以选择全局默认 provider，并且这个选择会影响后续新建的 AI 任务。
-21. TAL `gpt-image-2` 和 TAL `gemini-3.1-flash-image` 共享同一套公司 AI 服务配置，而不是两套 `base_url` / `key`。
+21. `GET /api/settings` 不含 `tal_service_api_key` / `masked_tal_service_api_key`，只返回 `has_tal_service_api_key`。
 22. TAL `gpt-image-2` adapter 可以接文生图 / 图生图；官方 `EditJob -> ImageVersion` 主链路不需要改模型结构。
-23. TAL `gemini-3.1-flash-image` adapter 可以接文生图 / 图生图；其 `chat/completions` 差异被封装在 adapter 内，而不是扩散到前端页面。
+23. SettingsPage 不再暴露 TAL 服务地址输入框；adapter 固定使用 `http://ai-service.tal.com/openai-compatible/v1`。
 24. 当前前端不出现“多图输入”入口，即使 TAL `gpt-image-2` 后端先支持多图，也不提前暴露 UI。
-25. `AI_HANDOFF.md` 和 `SETTINGS_SPEC.md` 能让下一位 AI 直接回答：
+25. 图改图主流程不再固定提交 `1024x1024`；前端展示输入图规格，TAL `auto` 由后端归一化并落库最终输出规格，例如 `935x1683 -> 928x1680`。
+26. 文生图 `auto` 落库为 `size = auto`，adapter 不向 provider 传 `size`。
+27. 官方 OpenAI 任务使用入队时快照的模型名，排队后修改 `openai_model` 不会改写旧任务的执行模型。
+28. `AI_HANDOFF.md` 和 `SETTINGS_SPEC.md` 能让下一位 AI 直接回答：
    - 默认 provider 放哪配
    - 公司服务配置是一套还是两套
    - 官方 OpenAI 路径是否保留
    - TAL 两类模型各走什么请求形态
+
+## 后续 Gemini Provider 验收重点
+
+29. TAL `gemini-3.1-flash-image` adapter 可以接文生图 / 图生图；其 `chat/completions` 差异被封装在 adapter 内，而不是扩散到前端页面。
+30. TAL `gemini-3-pro-image` 与 flash adapter 复用 Gemini 解析逻辑，并保持独立 provider id。
+31. TAL `gpt-image-2` 和 TAL Gemini provider 共享固定公司兼容层地址和同一个 key。

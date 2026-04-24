@@ -178,14 +178,18 @@
 
 ### 8.1 当前真实实现
 
-当前代码里的 AI 运行时仍然围绕官方 OpenAI 兼容调用组织：
+当前代码里的 AI 运行时已经通过 provider adapter 组织：
 
 - `services/jobs.py::JobRunner` 统一处理生图 / 改图
-- 当前真正接入的 provider 只有“官方 OpenAI 兼容路径”
-- `AppSettings` 当前保存的是这一路径所需的设置项：
+- 当前接入的 provider：
+  - `openai_official`
+  - `tal_gpt_image_2`
+- `AppSettings` 当前保存的是 provider 与运行偏好所需的设置项：
   - `openai_api_key`
   - `openai_base_url`
   - `openai_model`
+  - `default_provider`
+  - `tal_service_api_key`
   - `default_export_format`
   - `theme_mode`
   - `theme_variant`
@@ -199,7 +203,7 @@
 - 日常使用时，以 `SettingsPage -> AppSettings` 为主
 - 环境变量只应被视为工程兼容入口，而不是产品主入口
 
-这点对后续 provider 接入非常重要：下一阶段应该在 `SettingsPage` 和 `AppSettings` 上扩展 provider 能力，而不是继续把更多产品语义塞回 `.env`。
+这点对 provider 接入非常重要：后续应该继续在 `SettingsPage` 和 `AppSettings` 上扩展 provider 能力，而不是继续把更多产品语义塞回 `.env`。
 
 ### 8.3 当前代码里的兼容层
 
@@ -212,17 +216,22 @@
 - `LESSON_IMAGE_STUDIO_DATABASE_URL`
 - `LESSON_IMAGE_STUDIO_DATA_DIR`
 
-`services/jobs.py::JobRunner._load_openai_runtime` 会从 `AppSettings` 和 `Settings` 合并出当前运行所需的 `(api_key, base_url, model)`。
+`services/providers/openai_official.py` 会从 `AppSettings` 和 `Settings` 合并出官方 OpenAI 所需的 `(api_key, base_url, model)`。
 
 这里需要特别注意：
 
-- 这是当前代码层面的兼容实现
-- 不是后续 provider 架构的最终设计目标
+- 这是当前官方 OpenAI adapter 的兼容实现
+- `openai_model` 在任务创建时快照到 `EditJob.model`，运行时 adapter 使用这个快照模型
+- API key 与 base URL 不快照，仍从运行时本地设置读取
+- TAL `gpt-image-2` 固定使用 `http://ai-service.tal.com/openai-compatible/v1`，只从 `AppSettings` 读取 `tal_service_api_key`
+- 尺寸决策集中在 `services/image_sizes.py`
+- TAL 图改图 `auto` 会按底图宽高归一化到 `16` 对齐、最长边不超过 `3840`，并显式传给 provider
+- 文生图 `auto` 记录为 `size = auto`，adapter 不传 `size`
 - 未来如果把 `base_url / model` 收口为纯 `SettingsPage -> AppSettings`，应该优先更新 `SETTINGS_SPEC.md` 和 `AI_HANDOFF.md`
 
 ## 9. 面向下一阶段的扩展缝
 
-下一阶段最重要的结构性扩展不是改主模型，而是把“单一官方 OpenAI 路径”演进成“多 provider / 多 adapter 架构”。
+下一阶段最重要的结构性扩展不是改主模型，而是在已有 provider adapter 架构上继续接公司模型。
 
 这层扩展必须遵守：
 
@@ -231,14 +240,17 @@
 - 不改 Job 主链路
 - 把 provider 差异收敛到 adapter 层，而不是扩散进页面和数据库主模型
 
-从产品决策看，后续至少要支持：
+当前 Provider MVP 已支持：
 
 1. 官方 OpenAI
 2. TAL `gpt-image-2`
+
+后续规划继续支持：
+
 3. TAL `gemini-3.1-flash-image`
 4. TAL `gemini-3-pro-image`
 
-其中 TAL 两种模型共享同一套公司 AI 服务配置，而不是各配一套 `base_url` / `key`。
+其中 TAL 两种模型共享固定公司兼容层地址和同一个 key。
 
 ## 10. 当前已知非阻塞项
 
