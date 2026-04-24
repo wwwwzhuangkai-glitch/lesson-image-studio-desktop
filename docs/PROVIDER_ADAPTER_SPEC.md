@@ -178,6 +178,19 @@ class ProviderCallResult(TypedDict):
 - `output_format` 转成 `mime_type`
 - 把 `quality / size / usage` 记入 `provider_metadata`
 
+当前已实测验证：
+
+- `supports_edit = true`
+- `supports_mask = true`
+- `supports_size = true`
+- `supports_quality = true`
+
+但要特别注意：
+
+- 当请求里不显式传 `size` 时，当前 TAL `gpt-image-2` 的图改图结果**不会自动保留原图尺寸**
+- 后续前端不能假设“图改图默认沿用输入图规格”
+- 如果产品希望“尽量保持规格稳定”，必须在产品层单独定义策略，而不是依赖 provider 默认行为
+
 ### 6.3 TAL `gemini-3.1-flash-image`
 
 请求：
@@ -253,7 +266,63 @@ class ProviderCallResult(TypedDict):
 - 不能假设所有 provider 的 usage 字段同名
 - 不能假设图片结果永远在 `b64_json`
 
-## 8. 建议的错误归一化
+## 8. 前端默认策略建议
+
+对于 TAL `gpt-image-2`，当前更合理的前端策略是：
+
+- 默认 `quality = high`
+- `size` 不作为高频主控项暴露
+- `mask` 保留为正式能力，不应再视为“前端有、后端不可用”
+
+但需要额外强调：
+
+- 当前样本表明，“不传 `size`”不等于“保留输入图尺寸”
+- 如果产品以后非常强调“规格不变”，需要单独定义：
+  - 是否总是显式传一个标准 size
+  - 是否在后处理阶段做裁切 / 缩放
+  - 或是否在 UI 上明确提示“模型可能返回标准尺寸而不是原始像素尺寸”
+
+### 8.1 推荐的 size 归一化策略
+
+当前更推荐把“尽量保持原图规格”做成产品层和 adapter 层的显式逻辑，而不是依赖 provider 默认行为。
+
+推荐流程：
+
+1. 读取输入图原始宽高
+2. 如果最长边大于 `3840`，先按原始比例等比缩小到最长边 `= 3840`
+3. 把宽高分别修正到最接近的 `16` 的倍数
+4. 若修正后宽高出现 0 或比例异常，再退回到安全标准档位
+5. 把归一化后的 `size` 显式传给 provider
+
+当前这样做的原因：
+
+- TAL `gpt-image-2` 已明确报过错：
+  - 宽高都必须是 `16` 的倍数
+- 不传 `size` 时，图改图成功样本多次落到 `1536x1024`
+- 也就是说，当前 provider 默认行为并不等于“沿用输入图尺寸”
+
+### 8.2 归一化策略的例子
+
+输入图：
+
+- `935x1683`
+
+推荐归一化：
+
+- `928x1680`
+
+理由：
+
+- 与原图比例接近
+- 宽高都满足 `16` 的倍数
+- 比直接传原图尺寸更可能通过 provider 参数校验
+
+但要注意：
+
+- 这只是当前推荐策略，不是对 TAL 兼容层所有隐藏约束的最终证明
+- 即使尺寸参数合法，服务端仍可能因波动返回 `500/504`
+
+## 9. 建议的错误归一化
 
 不同 provider 最终都应尽量归一成统一错误结构，便于前端与任务中心展示：
 
@@ -275,7 +344,7 @@ class ProviderError(TypedDict):
 - `x-request-id`
 - `traceid`
 
-## 9. 当前不做什么
+## 10. 当前不做什么
 
 - 不在这一轮修改主模型
 - 不让页面直接理解 provider 的请求体差异
@@ -283,7 +352,7 @@ class ProviderError(TypedDict):
 - 不把公司 AI 服务配置拆成两份
 - 不把 `SettingsPage` 变成云端团队配置中心
 
-## 10. 下一步推荐顺序
+## 11. 下一步推荐顺序
 
 1. 先把 `default_provider + tal_service_base_url + tal_service_api_key` 补进 `SettingsPage / AppSettings`
 2. 抽 provider registry 和 base adapter
