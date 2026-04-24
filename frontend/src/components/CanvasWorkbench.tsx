@@ -74,13 +74,17 @@ export function CanvasWorkbench({
     return (
       <div className="dual-image-workbench">
         <ImagePane title="基准图" backgroundMode={backgroundMode} onToggleBackground={toggleBackground}>
-          <div className="canvas-empty compact">
-            <p>左栏选中版本后会显示基准图。</p>
+          <div className={`image-pane-body ${backgroundMode}`}>
+            <div className="canvas-empty compact">
+              <p>左栏选中版本后会显示基准图。</p>
+            </div>
           </div>
         </ImagePane>
-        <ImagePane title="结果图" backgroundMode={backgroundMode}>
-          <div className="canvas-empty compact">
-            <p>{resultEmptyLabel}</p>
+        <ImagePane title="结果图" backgroundMode={backgroundMode} onToggleBackground={toggleBackground}>
+          <div className={`image-pane-body ${backgroundMode}`}>
+            <div className="canvas-empty compact">
+              <p>{resultEmptyLabel}</p>
+            </div>
           </div>
         </ImagePane>
       </div>
@@ -134,6 +138,24 @@ export function CanvasWorkbench({
     setStartPoint(null)
   }
 
+  const selectionActions = (
+    <>
+      <button
+        className={`ghost-button small ${enableSelection ? 'is-active' : ''}`}
+        onClick={() => onSelectionModeChange(!enableSelection)}
+      >
+        {enableSelection ? '结束框选' : '局部框选'}
+      </button>
+      <button className="ghost-button small" disabled={!selection} onClick={() => onSelectionChange(null)}>
+        清除框选
+      </button>
+      <button className="ghost-button small" disabled={!selection} onClick={() => setShowSelection((value) => !value)}>
+        {showSelection ? '隐藏选区' : '显示选区'}
+      </button>
+      {selection ? <span className="canvas-toolbar-copy">选区 {selection.width} × {selection.height}</span> : null}
+    </>
+  )
+
   return (
     <div className="dual-image-workbench">
       <ImagePane
@@ -141,24 +163,9 @@ export function CanvasWorkbench({
         meta={`${image.width} × ${image.height}`}
         backgroundMode={backgroundMode}
         onToggleBackground={toggleBackground}
+        actions={selectionActions}
       >
-        <div className="canvas-toolbar compact">
-          <button
-            className={`ghost-button small ${enableSelection ? 'is-active' : ''}`}
-            onClick={() => onSelectionModeChange(!enableSelection)}
-          >
-            {enableSelection ? '结束框选' : '局部框选'}
-          </button>
-          <button className="ghost-button small" disabled={!selection} onClick={() => onSelectionChange(null)}>
-            清除框选
-          </button>
-          <button className="ghost-button small" disabled={!selection} onClick={() => setShowSelection((value) => !value)}>
-            {showSelection ? '隐藏选区' : '显示选区'}
-          </button>
-          {selection ? <span className="canvas-toolbar-copy">选区 {selection.width} × {selection.height}</span> : null}
-        </div>
-
-        <div className={`image-stage-wrap ${backgroundMode}`}>
+        <div className={`image-pane-body ${backgroundMode} ${enableSelection ? 'is-selecting' : ''}`}>
           <Stage
             width={dimensions.width}
             height={dimensions.height}
@@ -189,16 +196,16 @@ export function CanvasWorkbench({
         </div>
       </ImagePane>
 
-      <ImagePane title="结果图" backgroundMode={backgroundMode}>
-        {resultImageUrl ? (
-          <div className={`result-image-wrap ${backgroundMode}`}>
-            <img src={resultImageUrl} alt="结果图" />
-          </div>
-        ) : (
-          <div className="canvas-empty compact">
-            <p>{resultEmptyLabel}</p>
-          </div>
-        )}
+      <ImagePane title="结果图" backgroundMode={backgroundMode} onToggleBackground={toggleBackground}>
+        <div className={`image-pane-body ${backgroundMode}`}>
+          {resultImageUrl ? (
+            <img className="result-image" src={resultImageUrl} alt="结果图" />
+          ) : (
+            <div className="canvas-empty compact">
+              <p>{resultEmptyLabel}</p>
+            </div>
+          )}
+        </div>
       </ImagePane>
     </div>
   )
@@ -209,26 +216,31 @@ function ImagePane({
   meta,
   backgroundMode,
   onToggleBackground,
+  actions,
   children,
 }: {
   title: string
   meta?: string
   backgroundMode: BackgroundMode
   onToggleBackground?: () => void
+  actions?: ReactNode
   children: ReactNode
 }) {
   return (
     <section className="image-compare-pane">
       <div className="image-pane-header">
-        <div>
+        <div className="image-pane-title">
           <span className="field-label">{title}</span>
           {meta ? <strong>{meta}</strong> : null}
         </div>
-        {onToggleBackground ? (
-          <button className="ghost-button small" onClick={onToggleBackground}>
-            {backgroundMode === 'checker' ? '纯色底' : '棋盘格'}
-          </button>
-        ) : null}
+        <div className="image-pane-actions">
+          {actions}
+          {onToggleBackground ? (
+            <button className="ghost-button small" onClick={onToggleBackground}>
+              {backgroundMode === 'checker' ? '纯色底' : '棋盘格'}
+            </button>
+          ) : null}
+        </div>
       </div>
       {children}
     </section>
