@@ -234,264 +234,260 @@ export function SettingsPage() {
 
       <div className="workspace-scroll">
         <div className="settings-grid">
-          <section className="panel settings-section">
-            <div>
-              <div className="eyebrow">Provider</div>
-              <h2>默认 Provider</h2>
-            </div>
-            <div className="settings-row">
-              <span className="field-label">新任务默认使用</span>
-              <div className="segmented">
-                {PROVIDER_OPTIONS.map((option) => (
-                  <button
-                    key={option.id}
-                    type="button"
-                    className={providerDraft === option.id ? 'active' : ''}
-                    disabled={updateMutation.isPending}
-                    onClick={() => handleProviderChange(option.id)}
-                  >
-                    {option.label}
-                  </button>
-                ))}
-              </div>
-              <span className="settings-help">已创建任务会使用入队时快照的 provider。</span>
-            </div>
-          </section>
-
-          {showOpenAISettings ? (
+          <div className="settings-column">
             <section className="panel settings-section">
               <div>
-                <div className="eyebrow">OpenAI 官方</div>
-                <h2>OpenAI Key 与连接</h2>
+                <div className="eyebrow">Provider</div>
+                <h2>默认 Provider</h2>
               </div>
-              <div className="settings-inline">
-                <span className={`key-status-badge${settings.has_openai_api_key ? ' configured' : ''}`}>
-                  {settings.openai_api_key_source === 'app_settings'
-                    ? '已配置 · 本地'
-                    : settings.openai_api_key_source === 'env'
-                      ? '已配置 · 来自环境变量'
-                      : '未配置'}
-                </span>
-                {settings.openai_api_key_source === 'app_settings' ? (
-                  <button
-                    type="button"
-                    className="ghost-button small danger"
-                    disabled={clearKeyMutation.isPending}
-                    onClick={() => void handleClearKey()}
-                  >
-                    清空密钥
-                  </button>
-                ) : null}
-                {settings.openai_api_key_source === 'env' ? (
-                  <span className="settings-help">
-                    环境变量 key 不能从 UI 清空，请修改 <code>.env</code> 或在上方填新 key 覆盖。
-                  </span>
-                ) : null}
-              </div>
-              <form className="settings-row" onSubmit={handleSaveKey}>
-                <label>
-                  <span className="field-label">新的 Key</span>
-                  <input
-                    value={keyDraft}
-                    onChange={(event) => setKeyDraft(event.target.value)}
-                    placeholder="sk-..."
-                    autoComplete="off"
-                    spellCheck={false}
-                    type="password"
-                  />
-                </label>
-                <div className="settings-inline">
-                  <button
-                    type="submit"
-                    className="primary-button"
-                    disabled={setKeyMutation.isPending || !keyDraft.trim()}
-                  >
-                    {settings.has_openai_api_key ? '更新 Key' : '保存 Key'}
-                  </button>
-                  <span className="settings-help">保存后不会再从接口回传任何字符。</span>
-                </div>
-              </form>
-              <form className="settings-row" onSubmit={handleSaveOpenAIDefaults}>
-                <label>
-                  <span className="field-label">OpenAI base URL</span>
-                  <input
-                    value={baseUrlDraft}
-                    onChange={(event) => setBaseUrlDraft(event.target.value)}
-                    placeholder="留空走官方；自建代理或兼容端点填完整 URL"
-                    spellCheck={false}
-                  />
-                </label>
-                <label>
-                  <span className="field-label">生图模型</span>
-                  <input
-                    value={modelDraft}
-                    onChange={(event) => setModelDraft(event.target.value)}
-                    placeholder="gpt-image-2"
-                    spellCheck={false}
-                  />
-                  <span className="settings-help">只用于 OpenAI 官方 provider；新任务入队时会快照模型。</span>
-                </label>
-                <div className="settings-inline">
-                  <button
-                    type="submit"
-                    className="primary-button"
-                    disabled={updateMutation.isPending}
-                  >
-                    保存 OpenAI 连接
-                  </button>
-                </div>
-              </form>
-            </section>
-          ) : null}
-
-          {showTalSettings ? (
-            <section className="panel settings-section">
-              <div>
-                <div className="eyebrow">公司 AI 服务</div>
-                <h2>TAL gpt-image-2 配置</h2>
-                <p className="settings-help">
-                  公司兼容层地址由应用固定使用，老师只需要配置 appId:apiKey。
-                </p>
-              </div>
-              <div className="settings-inline">
-                <span className={`key-status-badge${settings.has_tal_service_api_key ? ' configured' : ''}`}>
-                  {settings.has_tal_service_api_key ? '已配置 · 本地' : '未配置'}
-                </span>
-                {settings.has_tal_service_api_key ? (
-                  <button
-                    type="button"
-                    className="ghost-button small danger"
-                    disabled={clearTalKeyMutation.isPending}
-                    onClick={() => void handleClearTalKey()}
-                  >
-                    清空认证值
-                  </button>
-                ) : null}
-              </div>
-              <form className="settings-row" onSubmit={handleSaveTalKey}>
-                <label>
-                  <span className="field-label">认证值</span>
-                  <input
-                    value={talKeyDraft}
-                    onChange={(event) => setTalKeyDraft(event.target.value)}
-                    placeholder="appId:apiKey"
-                    autoComplete="off"
-                    spellCheck={false}
-                    type="password"
-                  />
-                </label>
-                <div className="settings-inline">
-                  <button
-                    type="submit"
-                    className="primary-button"
-                    disabled={setTalKeyMutation.isPending || !talKeyDraft.trim()}
-                  >
-                    {settings.has_tal_service_api_key ? '更新公司认证值' : '保存公司认证值'}
-                  </button>
-                  <span className="settings-help">保存后不会再从接口回传任何字符。</span>
-                </div>
-              </form>
-            </section>
-          ) : null}
-
-          <section className="panel settings-section">
-            <div>
-              <div className="eyebrow">外观</div>
-              <h2>主题风格与明暗</h2>
-            </div>
-            <div className="settings-row">
-              <span className="field-label">风格</span>
-              <div className="segmented">
-                <button
-                  type="button"
-                  className={settings.theme_variant === 'graphite' ? 'active' : ''}
-                  onClick={() => handleVariantChange('graphite')}
-                >
-                  石板冷静
-                </button>
-                <button
-                  type="button"
-                  className={settings.theme_variant === 'glass' ? 'active' : ''}
-                  onClick={() => handleVariantChange('glass')}
-                >
-                  浅雾玻璃
-                </button>
-              </div>
-              <span className="settings-help">
-                石板冷静为默认风格，内部专业工具气质；浅雾玻璃延续第一版的柔光玻璃观感。
-              </span>
-            </div>
-            <div className="settings-row">
-              <span className="field-label">明暗</span>
-              <div className="segmented">
-                <button
-                  type="button"
-                  className={settings.theme_mode === 'light' ? 'active' : ''}
-                  onClick={() => handleModeChange('light')}
-                >
-                  Light
-                </button>
-                <button
-                  type="button"
-                  className={settings.theme_mode === 'dark' ? 'active' : ''}
-                  onClick={() => handleModeChange('dark')}
-                >
-                  Dark
-                </button>
-              </div>
-              <span className="settings-help">顶栏的日/月图标与此等效。</span>
-            </div>
-          </section>
-
-          <section className="panel settings-section">
-            <div>
-              <div className="eyebrow">通用默认参数</div>
-              <h2>导出与任务上限</h2>
-            </div>
-            <form className="settings-row" onSubmit={handleSaveGeneralDefaults}>
-              <label>
-                <span className="field-label">默认导出格式</span>
-                <select
-                  aria-label="默认导出格式"
-                  value={exportDraft}
-                  onChange={(event) => setExportDraft(event.target.value as ExportFormat)}
-                >
-                  {EXPORT_OPTIONS.map((value) => (
-                    <option key={value} value={value}>
-                      {value.toUpperCase()}
-                    </option>
+              <div className="settings-row">
+                <span className="field-label">新任务默认使用</span>
+                <div className="segmented">
+                  {PROVIDER_OPTIONS.map((option) => (
+                    <button
+                      key={option.id}
+                      type="button"
+                      className={providerDraft === option.id ? 'active' : ''}
+                      disabled={updateMutation.isPending}
+                      onClick={() => handleProviderChange(option.id)}
+                    >
+                      {option.label}
+                    </button>
                   ))}
-                </select>
-                <span className="settings-help">
-                  用于「导出定稿 / 导出选中」的默认格式，质量和尺寸仍在编辑页单独选。
-                </span>
-              </label>
-              <label>
-                <span className="field-label">并发任务上限</span>
-                <input
-                  type="number"
-                  aria-label="并发任务上限"
-                  min={1}
-                  max={10}
-                  step={1}
-                  value={concurrencyDraft}
-                  onChange={(event) => setConcurrencyDraft(Number(event.target.value) || 1)}
-                />
-                <span className="settings-help">
-                  同时排队+执行中的 AI 任务上限，达到上限后发起任务会被拒绝，避免误操作刷费。
-                </span>
-              </label>
-              <div className="settings-inline">
-                <button
-                  type="submit"
-                  className="primary-button"
-                  disabled={updateMutation.isPending}
-                >
-                  保存通用默认参数
-                </button>
+                </div>
+                <span className="settings-help">已创建任务会使用入队时快照的 provider。</span>
               </div>
-            </form>
-          </section>
+
+              {showOpenAISettings ? (
+                <>
+                  <div className="settings-divider" />
+                  <div>
+                    <div className="eyebrow">OpenAI 官方</div>
+                    <h2>Key 与连接</h2>
+                  </div>
+                  <div className="settings-inline">
+                    <span className={`key-status-badge${settings.has_openai_api_key ? ' configured' : ''}`}>
+                      {settings.openai_api_key_source === 'app_settings'
+                        ? '已配置 · 本地'
+                        : settings.openai_api_key_source === 'env'
+                          ? '已配置 · 来自环境变量'
+                          : '未配置'}
+                    </span>
+                    {settings.openai_api_key_source === 'app_settings' ? (
+                      <button
+                        type="button"
+                        className="ghost-button small danger"
+                        disabled={clearKeyMutation.isPending}
+                        onClick={() => void handleClearKey()}
+                      >
+                        清空密钥
+                      </button>
+                    ) : null}
+                    {settings.openai_api_key_source === 'env' ? (
+                      <span className="settings-help">
+                        环境变量 key 不能从 UI 清空，请修改 <code>.env</code> 或在上方填新 key 覆盖。
+                      </span>
+                    ) : null}
+                  </div>
+                  <form className="settings-row" onSubmit={handleSaveKey}>
+                    <label>
+                      <span className="field-label">新的 Key</span>
+                      <input
+                        value={keyDraft}
+                        onChange={(event) => setKeyDraft(event.target.value)}
+                        placeholder="sk-..."
+                        autoComplete="off"
+                        spellCheck={false}
+                        type="password"
+                      />
+                    </label>
+                    <div className="settings-inline">
+                      <button
+                        type="submit"
+                        className="primary-button"
+                        disabled={setKeyMutation.isPending || !keyDraft.trim()}
+                      >
+                        {settings.has_openai_api_key ? '更新 Key' : '保存 Key'}
+                      </button>
+                      <span className="settings-help">保存后不会再从接口回传任何字符。</span>
+                    </div>
+                  </form>
+                  <form className="settings-row" onSubmit={handleSaveOpenAIDefaults}>
+                    <label>
+                      <span className="field-label">OpenAI base URL</span>
+                      <input
+                        value={baseUrlDraft}
+                        onChange={(event) => setBaseUrlDraft(event.target.value)}
+                        placeholder="留空走官方；自建代理或兼容端点填完整 URL"
+                        spellCheck={false}
+                      />
+                    </label>
+                    <label>
+                      <span className="field-label">生图模型</span>
+                      <input
+                        value={modelDraft}
+                        onChange={(event) => setModelDraft(event.target.value)}
+                        placeholder="gpt-image-2"
+                        spellCheck={false}
+                      />
+                      <span className="settings-help">只用于 OpenAI 官方 provider；新任务入队时会快照模型。</span>
+                    </label>
+                    <div className="settings-inline">
+                      <button
+                        type="submit"
+                        className="primary-button"
+                        disabled={updateMutation.isPending}
+                      >
+                        保存 OpenAI 连接
+                      </button>
+                    </div>
+                  </form>
+                </>
+              ) : null}
+
+              {showTalSettings ? (
+                <>
+                  <div className="settings-divider" />
+                  <div>
+                    <div className="eyebrow">公司 AI 服务</div>
+                    <h2>TAL gpt-image-2 配置</h2>
+                    <p className="settings-help">
+                      公司兼容层地址由应用固定使用，老师只需要配置 appId:apiKey。
+                    </p>
+                  </div>
+                  <div className="settings-inline">
+                    <span className={`key-status-badge${settings.has_tal_service_api_key ? ' configured' : ''}`}>
+                      {settings.has_tal_service_api_key ? '已配置 · 本地' : '未配置'}
+                    </span>
+                    {settings.has_tal_service_api_key ? (
+                      <button
+                        type="button"
+                        className="ghost-button small danger"
+                        disabled={clearTalKeyMutation.isPending}
+                        onClick={() => void handleClearTalKey()}
+                      >
+                        清空认证值
+                      </button>
+                    ) : null}
+                  </div>
+                  <form className="settings-row" onSubmit={handleSaveTalKey}>
+                    <label>
+                      <span className="field-label">认证值</span>
+                      <input
+                        value={talKeyDraft}
+                        onChange={(event) => setTalKeyDraft(event.target.value)}
+                        placeholder="appId:apiKey"
+                        autoComplete="off"
+                        spellCheck={false}
+                        type="password"
+                      />
+                    </label>
+                    <div className="settings-inline">
+                      <button
+                        type="submit"
+                        className="primary-button"
+                        disabled={setTalKeyMutation.isPending || !talKeyDraft.trim()}
+                      >
+                        {settings.has_tal_service_api_key ? '更新公司认证值' : '保存公司认证值'}
+                      </button>
+                      <span className="settings-help">保存后不会再从接口回传任何字符。</span>
+                    </div>
+                  </form>
+                </>
+              ) : null}
+            </section>
+          </div>
+
+          <div className="settings-column">
+            <section className="panel settings-section">
+              <div>
+                <div className="eyebrow">外观</div>
+                <h2>主题风格与明暗</h2>
+              </div>
+              <div className="settings-row">
+                <span className="field-label">风格</span>
+                <div className="segmented">
+                  <button
+                    type="button"
+                    className={settings.theme_variant === 'graphite' ? 'active' : ''}
+                    onClick={() => handleVariantChange('graphite')}
+                  >
+                    石板冷静
+                  </button>
+                  <button
+                    type="button"
+                    className={settings.theme_variant === 'glass' ? 'active' : ''}
+                    onClick={() => handleVariantChange('glass')}
+                  >
+                    浅雾玻璃
+                  </button>
+                </div>
+              </div>
+              <div className="settings-row">
+                <span className="field-label">明暗</span>
+                <div className="segmented">
+                  <button
+                    type="button"
+                    className={settings.theme_mode === 'light' ? 'active' : ''}
+                    onClick={() => handleModeChange('light')}
+                  >
+                    Light
+                  </button>
+                  <button
+                    type="button"
+                    className={settings.theme_mode === 'dark' ? 'active' : ''}
+                    onClick={() => handleModeChange('dark')}
+                  >
+                    Dark
+                  </button>
+                </div>
+              </div>
+            </section>
+
+            <section className="panel settings-section">
+              <div>
+                <div className="eyebrow">通用默认参数</div>
+                <h2>导出与任务上限</h2>
+              </div>
+              <form className="settings-row" onSubmit={handleSaveGeneralDefaults}>
+                <label>
+                  <span className="field-label">默认导出格式</span>
+                  <select
+                    aria-label="默认导出格式"
+                    value={exportDraft}
+                    onChange={(event) => setExportDraft(event.target.value as ExportFormat)}
+                  >
+                    {EXPORT_OPTIONS.map((value) => (
+                      <option key={value} value={value}>
+                        {value.toUpperCase()}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label>
+                  <span className="field-label">并发任务上限</span>
+                  <input
+                    type="number"
+                    aria-label="并发任务上限"
+                    min={1}
+                    max={10}
+                    step={1}
+                    value={concurrencyDraft}
+                    onChange={(event) => setConcurrencyDraft(Number(event.target.value) || 1)}
+                  />
+                </label>
+                <div className="settings-inline">
+                  <button
+                    type="submit"
+                    className="primary-button"
+                    disabled={updateMutation.isPending}
+                  >
+                    保存通用默认参数
+                  </button>
+                </div>
+              </form>
+            </section>
+          </div>
         </div>
       </div>
     </div>

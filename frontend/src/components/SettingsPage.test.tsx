@@ -85,7 +85,7 @@ it('saves provider without rendering TAL base URL settings', async () => {
   renderSettingsPage()
 
   expect(await screen.findByText('默认 Provider')).toBeInTheDocument()
-  expect(screen.getByText('OpenAI Key 与连接')).toBeInTheDocument()
+  expect(screen.getByText('Key 与连接')).toBeInTheDocument()
   fireEvent.click(screen.getByRole('button', { name: 'TAL gpt-image-2' }))
 
   await waitFor(() => {
@@ -94,7 +94,7 @@ it('saves provider without rendering TAL base URL settings', async () => {
     })
   })
 
-  expect(screen.queryByText('OpenAI Key 与连接')).not.toBeInTheDocument()
+  expect(screen.queryByText('Key 与连接')).not.toBeInTheDocument()
   expect(screen.queryByText('OpenAI base URL')).not.toBeInTheDocument()
   expect(screen.getByText('导出与任务上限')).toBeInTheDocument()
   expect(screen.queryByText('公司服务根地址')).not.toBeInTheDocument()
@@ -128,7 +128,7 @@ it('keeps export format and concurrency as general defaults for TAL provider', a
   renderSettingsPage()
 
   expect(await screen.findByText('TAL gpt-image-2 配置')).toBeInTheDocument()
-  expect(screen.queryByText('OpenAI Key 与连接')).not.toBeInTheDocument()
+  expect(screen.queryByText('Key 与连接')).not.toBeInTheDocument()
   expect(screen.queryByText('OpenAI base URL')).not.toBeInTheDocument()
   expect(screen.getByText('导出与任务上限')).toBeInTheDocument()
 
