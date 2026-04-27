@@ -19,7 +19,7 @@ import {
   unfinalizeVersion,
 } from '../lib/api'
 import { useUiStore } from '../store/uiStore'
-import type { Job, ProviderId, Quality, Version } from '../types/api'
+import type { ExportFormat, ExportResponse, Job, ProviderId, Quality, Version } from '../types/api'
 import { AppTopbar } from './AppTopbar'
 import { CanvasWorkbench } from './CanvasWorkbench'
 import { useInputDialog } from './InputDialog'
@@ -34,6 +34,65 @@ const QUALITY_OPTIONS = [
 const EMPTY_VERSIONS: Version[] = []
 const GENERATE_SIZE_OPTIONS = ['auto', '1024x1024', '1536x1024', '1024x1536'] as const
 type GenerateSizeOption = (typeof GENERATE_SIZE_OPTIONS)[number]
+
+interface ExportFileHandle {
+  createWritable: () => Promise<{
+    write: (data: Blob) => Promise<void>
+    close: () => Promise<void>
+  }>
+}
+
+interface ExportPickerWindow extends Window {
+  showSaveFilePicker?: (options: { suggestedName: string }) => Promise<ExportFileHandle>
+}
+
+function isAbortError(error: unknown) {
+  return error instanceof DOMException && error.name === 'AbortError'
+}
+
+function getSuggestedExportName(version: Version, format: ExportFormat) {
+  const stem = version.file_name.replace(/\.[^.]+$/, '') || 'export'
+  const extension = format === 'jpeg' ? 'jpg' : format
+  return `${stem}.${extension}`
+}
+
+async function pickExportHandle(suggestedName: string) {
+  const picker = (window as ExportPickerWindow).showSaveFilePicker
+  if (!picker) return null
+  try {
+    return await picker.call(window, { suggestedName })
+  } catch (error) {
+    if (isAbortError(error)) {
+      throw error
+    }
+    return null
+  }
+}
+
+async function saveExportToUserLocation(result: ExportResponse, handle: ExportFileHandle | null) {
+  const response = await fetch(result.file_url)
+  if (!response.ok) {
+    throw new Error('导出文件已生成，但下载失败。')
+  }
+  const blob = await response.blob()
+  const fileName = result.file_name || result.storage_key.split('/').pop() || 'export.png'
+  if (handle) {
+    const writable = await handle.createWritable()
+    await writable.write(blob)
+    await writable.close()
+    return `已保存到你选择的位置：${fileName}`
+  }
+
+  const url = URL.createObjectURL(blob)
+  const anchor = document.createElement('a')
+  anchor.href = url
+  anchor.download = fileName
+  document.body.append(anchor)
+  anchor.click()
+  anchor.remove()
+  window.setTimeout(() => URL.revokeObjectURL(url), 0)
+  return `已开始下载：${fileName}`
+}
 
 export function ImageEditorPage() {
   const { itemId = '' } = useParams()
@@ -222,10 +281,18 @@ export function ImageEditorPage() {
     if (pendingAction) return
     setPendingAction(label)
     try {
+      const handle = await pickExportHandle(
+        getSuggestedExportName(target, settingsQuery.data?.default_export_format ?? 'png'),
+      )
       const result = await exportVersion(target.id)
-      pushNotice({ title: '导出成功', body: result.file_url })
+      const message = await saveExportToUserLocation(result, handle)
+      pushNotice({ title: '导出成功', body: message })
     } catch (error) {
-      pushNotice({ title: '导出失败', body: (error as Error).message })
+      if (isAbortError(error)) {
+        pushNotice({ title: '已取消导出' })
+      } else {
+        pushNotice({ title: '导出失败', body: (error as Error).message })
+      }
     } finally {
       setPendingAction(null)
     }
@@ -289,7 +356,7 @@ export function ImageEditorPage() {
     }
     const title = await inputDialog.prompt({
       title: '复制为新图片项',
-      message: '会在当前 Owner 下新建一个图片项，并以选中版本为新版本树的根。',
+      message: '会在当前项目下新建一个图片项，并以选中版本为新版本树的根。',
       defaultValue: `${detailQuery.data.image_item.title} - 副本`,
       placeholder: '新图片项标题',
       confirmLabel: '复制',
@@ -298,6 +365,53 @@ export function ImageEditorPage() {
     duplicateMutation.mutate({ versionId: selectedVersion.id, title })
   }
 
+  const secondaryActions = (
+    <div className="editor-topbar-action-strip" aria-label="版本操作">
+      {!hasVersions ? (
+        <label className="ghost-button small upload-button">
+          导入底图
+          <input hidden type="file" accept="image/*" onChange={handleRootImport} />
+        </label>
+      ) : null}
+      <button className="ghost-button small" onClick={handleFinalize} disabled={!selectedVersion || pendingAction !== null}>
+        设为定稿
+      </button>
+      <button className="ghost-button small" onClick={() => void handleExport(selectedVersion, 'export-selected')} disabled={!selectedVersion || pendingAction !== null}>
+        导出选中
+      </button>
+      <button className="ghost-button small" onClick={() => void handlePublish(selectedVersion, 'publish-selected')} disabled={!selectedVersion || pendingAction !== null}>
+        发布选中
+      </button>
+      <button className="ghost-button small" onClick={() => void handleExport(currentFinalVersion, 'export-final')} disabled={!currentFinalVersion || pendingAction !== null}>
+        导出定稿
+      </button>
+      <button className="ghost-button small" onClick={() => void handlePublish(currentFinalVersion, 'publish-final')} disabled={!currentFinalVersion || pendingAction !== null}>
+        发布定稿
+      </button>
+      <button
+        className="ghost-button small"
+        onClick={handleUnfinalize}
+        disabled={!currentFinalVersion || pendingAction !== null}
+      >
+        取消定稿
+      </button>
+      <button
+        className="ghost-button small"
+        disabled={!selectedVersion || duplicateMutation.isPending || pendingAction !== null}
+        onClick={handleDuplicateFromSelected}
+      >
+        复制为新图
+      </button>
+      <button
+        className="ghost-button small danger"
+        disabled={!selectedVersion || selectedVersion.child_count > 0 || selectedVersion.is_current_final || pendingAction !== null}
+        onClick={handleDeleteVersion}
+      >
+        删除版本
+      </button>
+    </div>
+  )
+
   return (
     <div className="workbench-shell editor-workbench">
       <aside className="workspace-sidebar version-rail">
@@ -305,7 +419,7 @@ export function ImageEditorPage() {
           <span className="sidebar-brand-mark">LS</span>
           <div>
             <strong>Lesson Image Studio</strong>
-            <p>版本工作台</p>
+            <p>教研画图工作台</p>
           </div>
         </div>
 
@@ -350,11 +464,12 @@ export function ImageEditorPage() {
       </aside>
 
       <section className="workspace-frame editor-frame">
-        <header className="workspace-topbar">
+        <header className="workspace-topbar editor-topbar">
           <div>
             <div className="eyebrow">单图编辑页</div>
             <h1>{detailQuery.data?.image_item.title ?? '图片编辑中'}</h1>
           </div>
+          {secondaryActions}
           <div className="topbar-actions">
             <span className="topbar-chip">{selectedVersion ? '已选中版本' : '等待选中版本'}</span>
             {currentFinalVersion ? <span className="topbar-chip topbar-chip-success">当前已有定稿</span> : null}
@@ -446,13 +561,7 @@ export function ImageEditorPage() {
                   ? '图改图最终规格由后端按 provider 规则归一化，提交对象永远是左栏当前选中版本。'
                   : '生图默认 auto，不向 provider 传 size；选择预设后会显式传 size。'}
               </p>
-            </div>
-
-            <div className="console-group actions-console">
-              <div className="console-heading">
-                <span className="field-label">动作</span>
-              </div>
-              <div className="console-actions">
+              <div className="console-primary-action">
                 {hasVersions ? (
                   <button
                     className="primary-button"
@@ -462,56 +571,14 @@ export function ImageEditorPage() {
                     发起 AI 改图
                   </button>
                 ) : (
-                  <>
-                    <label className="ghost-button upload-button">
-                      导入底图
-                      <input hidden type="file" accept="image/*" onChange={handleRootImport} />
-                    </label>
-                    <button
-                      className="primary-button"
-                      disabled={!promptText.trim() || generateMutation.isPending}
-                      onClick={() => generateMutation.mutate()}
-                    >
-                      发起 AI 生图
-                    </button>
-                  </>
+                  <button
+                    className="primary-button"
+                    disabled={!promptText.trim() || generateMutation.isPending}
+                    onClick={() => generateMutation.mutate()}
+                  >
+                    发起 AI 生图
+                  </button>
                 )}
-                <button className="ghost-button" onClick={handleFinalize} disabled={!selectedVersion || pendingAction !== null}>
-                  设为当前定稿
-                </button>
-                <button className="ghost-button" onClick={() => void handleExport(selectedVersion, 'export-selected')} disabled={pendingAction !== null}>
-                  导出选中
-                </button>
-                <button className="ghost-button" onClick={() => void handlePublish(selectedVersion, 'publish-selected')} disabled={pendingAction !== null}>
-                  发布选中
-                </button>
-                <button className="ghost-button" onClick={() => void handleExport(currentFinalVersion, 'export-final')} disabled={pendingAction !== null}>
-                  导出定稿
-                </button>
-                <button className="ghost-button" onClick={() => void handlePublish(currentFinalVersion, 'publish-final')} disabled={pendingAction !== null}>
-                  发布定稿
-                </button>
-                <button
-                  className="ghost-button"
-                  onClick={handleUnfinalize}
-                  disabled={!currentFinalVersion || pendingAction !== null}
-                >
-                  取消定稿
-                </button>
-                <button
-                  className="ghost-button"
-                  disabled={!selectedVersion || duplicateMutation.isPending || pendingAction !== null}
-                  onClick={handleDuplicateFromSelected}
-                >
-                  复制为新图片项
-                </button>
-                <button
-                  className="ghost-button danger"
-                  disabled={!selectedVersion || selectedVersion.child_count > 0 || selectedVersion.is_current_final || pendingAction !== null}
-                  onClick={handleDeleteVersion}
-                >
-                  删除选中版本
-                </button>
               </div>
             </div>
           </section>

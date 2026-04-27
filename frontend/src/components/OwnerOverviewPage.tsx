@@ -13,13 +13,25 @@ import {
   publishPlaceholder,
   reorderImageItems,
 } from '../lib/api'
-import type { ImageItemSummary } from '../types/api'
+import type { ImageItemSummary, Owner } from '../types/api'
 import { useUiStore } from '../store/uiStore'
 import { AppTopbar } from './AppTopbar'
 import { useInputDialog } from './InputDialog'
 
 function getPreview(item: ImageItemSummary) {
   return item.current_final_version ?? item.latest_version
+}
+
+function getProjectTitle(owner: Owner | undefined) {
+  if (!owner) return '载入中…'
+  return owner.local_title?.trim() || '未命名'
+}
+
+function getProjectTypeLabel(ownerType: string) {
+  if (ownerType === 'question') return '题目ID'
+  if (ownerType === 'asset') return '知识素材ID'
+  if (ownerType === 'other') return '本地项目'
+  return '项目ID'
 }
 
 export function OwnerOverviewPage() {
@@ -85,6 +97,10 @@ export function OwnerOverviewPage() {
   })
 
   const items = ownerQuery.data?.image_items ?? []
+  const projectTitle = getProjectTitle(ownerQuery.data?.owner)
+  const projectMeta = ownerQuery.data?.owner
+    ? `${getProjectTypeLabel(ownerQuery.data.owner.owner_type)} · ${ownerQuery.data.owner.owner_id}`
+    : ''
 
   async function handleUpload(imageItemId: string, file: File) {
     try {
@@ -154,17 +170,15 @@ export function OwnerOverviewPage() {
         </div>
 
         <div className="sidebar-context-card">
-          <div className="eyebrow">当前 Owner</div>
-          <h2>{ownerQuery.data?.owner.local_title || ownerQuery.data?.owner.owner_id || '载入中…'}</h2>
-          <p>
-            {ownerQuery.data?.owner.owner_type} · {ownerQuery.data?.owner.owner_id}
-          </p>
+          <div className="eyebrow">当前项目</div>
+          <h2>{projectTitle}</h2>
+          <p>{projectMeta}</p>
         </div>
 
         <nav className="sidebar-nav">
           <button className="sidebar-nav-item active">图片总览</button>
           <button className="sidebar-nav-item" onClick={() => navigate('/')}>
-            切换 Owner
+            切换项目
           </button>
         </nav>
 
@@ -188,12 +202,12 @@ export function OwnerOverviewPage() {
       <section className="workspace-frame">
         <header className="workspace-topbar">
           <div>
-            <div className="eyebrow">Owner 多图总览</div>
-            <h1>{ownerQuery.data?.owner.local_title || ownerQuery.data?.owner.owner_id || '载入中…'}</h1>
+            <div className="eyebrow">项目多图总览</div>
+            <h1>{projectTitle}</h1>
           </div>
 
           <div className="topbar-actions">
-            <span className="topbar-chip">最近打开固定 5 条</span>
+            <span className="topbar-chip">最近打开固定 5 个项目</span>
             <button
               className="primary-button"
               disabled={publishBundleMutation.isPending}
@@ -249,6 +263,7 @@ export function OwnerOverviewPage() {
           <section className="overview-card-grid">
             {items.map((item, index) => {
               const preview = getPreview(item)
+              const hasVersion = Boolean(preview)
               return (
                 <article key={item.id} className={clsx('overview-item-card panel', { empty: !preview })}>
                   <button className="overview-card-visual" onClick={() => navigate(`/items/${item.id}`)}>
@@ -305,6 +320,8 @@ export function OwnerOverviewPage() {
                       </button>
                       <button
                         className="ghost-button small"
+                        disabled={hasVersion}
+                        title={hasVersion ? '该图片项已有版本；如需导入另一张底图，请新建图片项。' : undefined}
                         onClick={() => fileInputRefs.current[item.id]?.click()}
                       >
                         导入底图

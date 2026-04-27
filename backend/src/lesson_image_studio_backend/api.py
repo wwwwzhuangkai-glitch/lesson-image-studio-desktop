@@ -728,7 +728,12 @@ def export_version_endpoint(
         db.commit()
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
-    return ExportResponse(version_id=version.id, file_url=storage.build_url(stored.storage_key), storage_key=stored.storage_key)
+    return ExportResponse(
+        version_id=version.id,
+        file_url=storage.build_url(stored.storage_key),
+        storage_key=stored.storage_key,
+        file_name=stored.file_name,
+    )
 
 
 @router.post("/publish", response_model=PublishRecordResponse)

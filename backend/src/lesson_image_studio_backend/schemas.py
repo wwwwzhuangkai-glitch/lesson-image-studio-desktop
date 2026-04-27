@@ -239,6 +239,7 @@ class ExportResponse(BaseModel):
     version_id: str
     file_url: str
     storage_key: str
+    file_name: str
 
 
 class PublishRequest(BaseModel):

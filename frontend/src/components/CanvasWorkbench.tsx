@@ -24,6 +24,11 @@ interface CanvasWorkbenchProps {
 }
 
 type BackgroundMode = 'checker' | 'solid'
+interface PreviewImage {
+  src: string
+  title: string
+  meta?: string
+}
 
 export function CanvasWorkbench({
   baseImageUrl,
@@ -42,6 +47,7 @@ export function CanvasWorkbench({
   const [startPoint, setStartPoint] = useState<{ x: number; y: number } | null>(null)
   const [showSelection, setShowSelection] = useState(true)
   const [backgroundMode, setBackgroundMode] = useState<BackgroundMode>('checker')
+  const [previewImage, setPreviewImage] = useState<PreviewImage | null>(null)
   const { themeMode, themeVariant } = useTheme()
   const accent = useMemo(() => {
     if (typeof window === 'undefined') return '#2b6cb0'
@@ -107,6 +113,17 @@ export function CanvasWorkbench({
       height: Math.round(resultImage.height * scale),
     }
   }, [resultImage, containerSize])
+
+  useEffect(() => {
+    if (!previewImage) return
+    function onKey(event: KeyboardEvent) {
+      if (event.key === 'Escape') {
+        setPreviewImage(null)
+      }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [previewImage])
 
   const activeRect = showSelection ? draft ?? selection : null
   const toggleBackground = () => setBackgroundMode((value) => (value === 'checker' ? 'solid' : 'checker'))
@@ -178,6 +195,11 @@ export function CanvasWorkbench({
     setDraft(null)
     setStartPoint(null)
   }
+  const handleStageClick = () => {
+    if (!enableSelection && baseImageUrl) {
+      setPreviewImage({ src: baseImageUrl, title: '基准图', meta: `${image.width} × ${image.height}` })
+    }
+  }
 
   const selectionActions = (
     <>
@@ -215,6 +237,7 @@ export function CanvasWorkbench({
             onMouseDown={handleMouseDown}
             onMouseMove={handleMouseMove}
             onMouseUp={handleMouseUp}
+            onClick={handleStageClick}
             className="canvas-stage"
           >
             <Layer>
@@ -242,14 +265,26 @@ export function CanvasWorkbench({
       <ImagePane title="结果图" backgroundMode={backgroundMode} onToggleBackground={toggleBackground}>
         <div className={`image-pane-body ${backgroundMode}`}>
           {resultImageUrl && !resultError && resultDimensions ? (
-            <img
-              className="result-image"
-              src={resultImageUrl}
-              alt="结果图"
-              width={resultDimensions.width}
-              height={resultDimensions.height}
-              onError={() => setResultErrorUrl(resultImageUrl)}
-            />
+            <button
+              className="image-preview-trigger"
+              type="button"
+              onClick={() =>
+                setPreviewImage({
+                  src: resultImageUrl,
+                  title: '结果图',
+                  meta: resultImage ? `${resultImage.width} × ${resultImage.height}` : undefined,
+                })
+              }
+            >
+              <img
+                className="result-image"
+                src={resultImageUrl}
+                alt="结果图"
+                width={resultDimensions.width}
+                height={resultDimensions.height}
+                onError={() => setResultErrorUrl(resultImageUrl)}
+              />
+            </button>
           ) : resultImageUrl && !resultError ? (
             <div className="canvas-empty compact"><p>正在加载结果图…</p></div>
           ) : (
@@ -259,6 +294,7 @@ export function CanvasWorkbench({
           )}
         </div>
       </ImagePane>
+      {previewImage ? <ImagePreviewOverlay image={previewImage} onClose={() => setPreviewImage(null)} /> : null}
     </div>
   )
 }
@@ -296,5 +332,26 @@ function ImagePane({
       </div>
       {children}
     </section>
+  )
+}
+
+function ImagePreviewOverlay({ image, onClose }: { image: PreviewImage; onClose: () => void }) {
+  return (
+    <div className="image-preview-backdrop" onClick={onClose}>
+      <div className="image-preview-panel" role="dialog" aria-modal="true" onClick={(event) => event.stopPropagation()}>
+        <div className="image-preview-header">
+          <div>
+            <strong>{image.title}</strong>
+            {image.meta ? <span>{image.meta}</span> : null}
+          </div>
+          <button className="ghost-button small" onClick={onClose}>
+            关闭
+          </button>
+        </div>
+        <div className="image-preview-stage">
+          <img src={image.src} alt={image.title} />
+        </div>
+      </div>
+    </div>
   )
 }

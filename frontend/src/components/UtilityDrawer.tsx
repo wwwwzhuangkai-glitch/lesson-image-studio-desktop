@@ -40,7 +40,7 @@ function getJobStatusLabel(status: string) {
 
 function getEventLabel(event: EventLog) {
   const mapping: Record<string, string> = {
-    owner_opened: '打开了工作对象',
+    owner_opened: '打开了项目',
     image_item_created: '创建了图片项',
     image_imported: '导入了底图',
     edit_job_created: '发起了改图任务',
@@ -330,10 +330,10 @@ export function UtilityDrawer() {
               disabled={!currentOwnerId}
               onClick={() => setTaskScope('owner')}
             >
-              当前 Owner
+              当前项目
             </button>
             <button className={taskScope === 'all' ? 'active' : ''} onClick={() => setTaskScope('all')}>
-              全部 Owner
+              全部项目
             </button>
           </div>
 
@@ -364,7 +364,7 @@ export function UtilityDrawer() {
 
       {activeTab === 'events' ? (
         <div className="utility-scroll">
-          {!currentOwnerId ? <div className="empty-mini-card">当前没有可查看的 Owner。</div> : null}
+          {!currentOwnerId ? <div className="empty-mini-card">当前没有可查看的项目。</div> : null}
           {(eventsQuery.data?.events ?? []).map((event) => (
             <div key={event.id} className="utility-card">
               <strong>{getEventLabel(event)}</strong>
@@ -379,7 +379,7 @@ export function UtilityDrawer() {
 
       {activeTab === 'recycle' ? (
         <div className="utility-scroll">
-          {!currentOwnerId ? <div className="empty-mini-card">当前没有可查看的 Owner。</div> : null}
+          {!currentOwnerId ? <div className="empty-mini-card">当前没有可查看的项目。</div> : null}
 
           {currentOwnerId ? (
             <>

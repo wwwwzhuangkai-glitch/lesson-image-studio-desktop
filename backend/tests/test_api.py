@@ -759,6 +759,7 @@ def test_export_uses_default_export_format(client):
     # Storage key and URL should now carry a JPEG extension
     assert payload["storage_key"].endswith(".jpg")
     assert payload["file_url"].endswith(".jpg")
+    assert payload["file_name"] == "root.jpg"
 
     # And the file on disk should actually be a JPEG (magic bytes FF D8 FF)
     data_dir = Path(client.app.state.settings.file_storage_dir)
@@ -785,6 +786,7 @@ def test_export_default_png_keeps_original_bytes(client):
     response = client.post(f"/api/versions/{version['id']}/export")
     assert response.status_code == 200
     payload = response.json()
+    assert payload["file_name"] == "root.png"
     data_dir = Path(client.app.state.settings.file_storage_dir)
     exported_bytes = (data_dir / payload["storage_key"]).read_bytes()
     # PNG default flows through save_bytes as raw copy

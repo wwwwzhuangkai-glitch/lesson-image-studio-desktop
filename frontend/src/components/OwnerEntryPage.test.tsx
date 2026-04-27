@@ -21,5 +21,5 @@ it('shows local title guidance for other mode', async () => {
   )
 
   expect(screen.getByRole('heading', { name: '进入工作台' })).toBeInTheDocument()
-  expect(screen.getByText('工作对象类型')).toBeInTheDocument()
+  expect(screen.getByText('项目类型')).toBeInTheDocument()
 })

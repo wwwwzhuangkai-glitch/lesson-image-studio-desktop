@@ -5,13 +5,25 @@ import { useNavigate } from 'react-router-dom'
 
 import { listRecentOwners, openOwner } from '../lib/api'
 import { useUiStore } from '../store/uiStore'
+import type { Owner } from '../types/api'
 import { AppTopbar } from './AppTopbar'
 
 const OWNER_OPTIONS = [
-  { value: 'question', label: '题目' },
-  { value: 'asset', label: '知识素材' },
-  { value: 'other', label: '其它模式' },
+  { value: 'question', label: '题目ID' },
+  { value: 'asset', label: '知识素材ID' },
+  { value: 'other', label: '本地项目' },
 ]
+
+function getProjectTitle(owner: Owner) {
+  return owner.local_title?.trim() || '未命名'
+}
+
+function getProjectTypeLabel(ownerType: string) {
+  if (ownerType === 'question') return '题目ID'
+  if (ownerType === 'asset') return '知识素材ID'
+  if (ownerType === 'other') return '本地项目'
+  return '项目ID'
+}
 
 export function OwnerEntryPage() {
   const navigate = useNavigate()
@@ -39,7 +51,7 @@ export function OwnerEntryPage() {
 
   const helperText = useMemo(() => {
     if (ownerType === 'other') {
-      return '系统会自动生成一个本地 owner_id，你只需要起一个标题。'
+      return '系统会自动生成一个本地项目 ID；标题留空时会显示为未命名。'
     }
     return '输入已有的题目 ID 或知识素材 ID 进入工作台。'
   }, [ownerType])
@@ -49,7 +61,7 @@ export function OwnerEntryPage() {
     mutation.mutate({
       owner_type: ownerType,
       owner_id: ownerType === 'other' ? undefined : ownerId.trim(),
-      local_title: localTitle.trim() || undefined,
+      local_title: localTitle.trim() || '未命名',
     })
   }
 
@@ -65,18 +77,18 @@ export function OwnerEntryPage() {
 
       <section className="panel recent-panel">
         <h2>最近打开</h2>
-        <p className="muted">回到之前的工作对象继续改图</p>
+        <p className="muted">回到之前的项目继续改图</p>
         <div className="recent-owner-list">
           {(recentQuery.data ?? []).map((owner) => (
             <button key={owner.id} className="recent-owner-card" onClick={() => navigate(`/owners/${owner.id}`)}>
-              <strong>{owner.local_title || owner.owner_id}</strong>
+              <strong>{getProjectTitle(owner)}</strong>
               <span>
-                {owner.owner_type} · {owner.owner_id}
+                {getProjectTypeLabel(owner.owner_type)} · {owner.owner_id}
               </span>
             </button>
           ))}
           {!recentQuery.data?.length && !recentQuery.isLoading ? (
-            <div className="empty-mini-card">还没有最近打开的 Owner。</div>
+            <div className="empty-mini-card">还没有最近打开的项目。</div>
           ) : null}
         </div>
       </section>
@@ -85,7 +97,7 @@ export function OwnerEntryPage() {
         <h2>进入工作台</h2>
         <form onSubmit={handleSubmit} className="stack-form">
           <label>
-            <span>工作对象类型</span>
+            <span>项目类型</span>
             <select value={ownerType} onChange={(event) => setOwnerType(event.target.value as typeof ownerType)}>
               {OWNER_OPTIONS.map((option) => (
                 <option key={option.value} value={option.value}>
@@ -97,7 +109,7 @@ export function OwnerEntryPage() {
 
           {ownerType !== 'other' ? (
             <label>
-              <span>业务 ID</span>
+              <span>{ownerType === 'question' ? '题目ID' : '知识素材ID'}</span>
               <input
                 value={ownerId}
                 onChange={(event) => setOwnerId(event.target.value)}
@@ -111,7 +123,7 @@ export function OwnerEntryPage() {
             <input
               value={localTitle}
               onChange={(event) => setLocalTitle(event.target.value)}
-              placeholder={ownerType === 'other' ? '例如：牛顿第二定律插图草稿' : '可留空'}
+              placeholder={ownerType === 'other' ? '例如：牛顿第二定律插图草稿' : '留空显示为未命名'}
             />
           </label>
 

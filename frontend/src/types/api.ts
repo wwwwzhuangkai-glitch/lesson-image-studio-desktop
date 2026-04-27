@@ -137,6 +137,7 @@ export interface ExportResponse {
   version_id: string
   file_url: string
   storage_key: string
+  file_name: string
 }
 
 export interface PublishRecord {
