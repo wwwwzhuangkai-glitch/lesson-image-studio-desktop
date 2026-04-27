@@ -349,7 +349,9 @@ function ImagePreviewOverlay({ image, onClose }: { image: PreviewImage; onClose:
           </button>
         </div>
         <div className="image-preview-stage">
-          <img src={image.src} alt={image.title} />
+          <div className="image-preview-scroll-content">
+            <img src={image.src} alt={image.title} />
+          </div>
         </div>
       </div>
     </div>
