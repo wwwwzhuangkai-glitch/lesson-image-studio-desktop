@@ -241,7 +241,7 @@ class JobRunner:
                     job,
                     owner_id=owner.id,
                     image_item_id=image_item.id,
-                    message=str(exc),
+                    message=f"{exc.__class__.__name__}: {exc}",
                     code="job_failed",
                 )
 

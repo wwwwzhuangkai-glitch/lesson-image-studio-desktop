@@ -1292,6 +1292,14 @@ a {
   -webkit-box-orient: vertical;
 }
 
+.utility-card-button .job-error-detail {
+  margin-top: 0.45rem;
+  color: var(--danger);
+  display: block;
+  overflow-wrap: anywhere;
+  -webkit-line-clamp: unset;
+}
+
 .utility-row {
   display: flex;
   justify-content: space-between;

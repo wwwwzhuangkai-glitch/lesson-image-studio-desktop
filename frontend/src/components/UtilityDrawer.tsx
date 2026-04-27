@@ -59,6 +59,11 @@ function getEventLabel(event: EventLog) {
   return mapping[event.event_type] ?? event.event_type
 }
 
+function getJobErrorDetail(job: Job) {
+  if (job.status !== 'failed') return null
+  return [job.error_code, job.error_message].filter(Boolean).join('：') || '任务失败，但后端没有返回错误详情。'
+}
+
 export function UtilityDrawer() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
@@ -339,22 +344,26 @@ export function UtilityDrawer() {
 
           <div className="utility-scroll">
             {jobsQuery.isLoading ? <p className="muted">正在加载任务…</p> : null}
-            {(jobsQuery.data ?? []).map((job) => (
-              <button
-                key={job.id}
-                className="utility-card utility-card-button"
-                onClick={() => {
-                  navigate(`/items/${job.image_item_id}`)
-                  closeUtilityDrawer()
-                }}
-              >
-                <div>
-                  <strong>{getTaskLabel(job)}</strong>
-                  <p>{job.prompt_text}</p>
-                </div>
-                <span className={`status-pill status-${job.status}`}>{getJobStatusLabel(job.status)}</span>
-              </button>
-            ))}
+            {(jobsQuery.data ?? []).map((job) => {
+              const errorDetail = getJobErrorDetail(job)
+              return (
+                <button
+                  key={job.id}
+                  className="utility-card utility-card-button"
+                  onClick={() => {
+                    navigate(`/items/${job.image_item_id}`)
+                    closeUtilityDrawer()
+                  }}
+                >
+                  <div>
+                    <strong>{getTaskLabel(job)}</strong>
+                    <p>{job.prompt_text}</p>
+                    {errorDetail ? <p className="job-error-detail">{errorDetail}</p> : null}
+                  </div>
+                  <span className={`status-pill status-${job.status}`}>{getJobStatusLabel(job.status)}</span>
+                </button>
+              )
+            })}
             {!jobsQuery.data?.length && !jobsQuery.isLoading ? (
               <div className="empty-mini-card">当前没有任务记录。</div>
             ) : null}
