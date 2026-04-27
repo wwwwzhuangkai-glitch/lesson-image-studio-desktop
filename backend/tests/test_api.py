@@ -261,9 +261,9 @@ def test_rejects_mask_from_another_image_item(client):
 
 
 def test_tal_auto_size_helper_normalizes_to_sixteen_grid():
-    assert normalize_tal_edit_size(935, 1683) == "928x1680"
-    # 5000x2500 first scales to 3840x1920, already aligned to 16.
-    assert normalize_tal_edit_size(5000, 2500) == "3840x1920"
+    assert normalize_tal_edit_size(935, 1683) == "1136x2048"
+    # Auto edit targets a 2048px long edge while preserving aspect ratio.
+    assert normalize_tal_edit_size(5000, 2500) == "2048x1024"
 
 
 def test_tal_custom_size_reaches_service_validation(client):
@@ -679,12 +679,12 @@ def test_tal_edit_auto_size_is_resolved_and_passed_to_adapter(client):
 
     payload = client.get(f"/api/jobs/{job['job_id']}").json()
     assert payload["status"] == "succeeded"
-    assert payload["size"] == "928x1680"
+    assert payload["size"] == "1136x2048"
     assert payload["quality"] == "high"
     assert payload["request_params"]["size_mode"] == "auto"
-    assert payload["request_params"]["resolved_size"] == "928x1680"
-    assert payload["output_version"]["size"] == "928x1680"
-    assert registry.adapter.edit_requests[-1].size == "928x1680"
+    assert payload["request_params"]["resolved_size"] == "1136x2048"
+    assert payload["output_version"]["size"] == "1136x2048"
+    assert registry.adapter.edit_requests[-1].size == "1136x2048"
 
 
 def test_global_concurrency_blocks_cross_item_jobs(client):
