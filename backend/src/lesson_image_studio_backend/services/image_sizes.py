@@ -10,6 +10,7 @@ SizeMode = Literal["auto", "preset", "custom"]
 PRESET_SIZES = frozenset({"1024x1024", "1536x1024", "1024x1536"})
 DEFAULT_PRESET_SIZE = "1024x1024"
 MAX_PROVIDER_SIDE = 3840
+TARGET_TAL_EDIT_SIDE = 2048
 SIZE_STEP = 16
 
 _SIZE_RE = re.compile(r"^([1-9]\d*)x([1-9]\d*)$")
@@ -96,7 +97,8 @@ def provider_size_from_resolved(size: str) -> str | None:
 def normalize_tal_edit_size(width: int, height: int) -> str:
     if width <= 0 or height <= 0:
         raise ValueError("底图尺寸必须是正整数。")
-    scale = min(1.0, MAX_PROVIDER_SIDE / max(width, height))
+    target_side = min(TARGET_TAL_EDIT_SIDE, MAX_PROVIDER_SIDE)
+    scale = target_side / max(width, height)
     normalized_width = _round_to_step(width * scale)
     normalized_height = _round_to_step(height * scale)
     return f"{normalized_width}x{normalized_height}"
