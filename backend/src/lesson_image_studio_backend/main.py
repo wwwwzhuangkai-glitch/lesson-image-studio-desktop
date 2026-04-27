@@ -1,8 +1,12 @@
 from __future__ import annotations
 
+import os
+import sys
 from contextlib import asynccontextmanager
 from pathlib import Path
 
+from alembic import command
+from alembic.config import Config
 import uvicorn
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -53,5 +57,29 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 app = create_app()
 
 
+def _resource_path(*parts: str) -> Path:
+    if getattr(sys, "frozen", False) and hasattr(sys, "_MEIPASS"):
+        return Path(sys._MEIPASS, *parts)
+    return Path(__file__).resolve().parents[2].joinpath(*parts)
+
+
+def run_migrations(settings: Settings) -> None:
+    alembic_ini = _resource_path("alembic.ini")
+    script_location = _resource_path("alembic")
+    config = Config(str(alembic_ini))
+    config.set_main_option("script_location", str(script_location))
+    config.set_main_option("sqlalchemy.url", settings.resolved_database_url)
+    command.upgrade(config, "head")
+
+
 def run() -> None:
     uvicorn.run("lesson_image_studio_backend.main:app", host="127.0.0.1", port=8000, reload=True)
+
+
+def run_desktop() -> None:
+    settings = app.state.settings
+    if os.getenv("LESSON_IMAGE_STUDIO_AUTO_MIGRATE", "1") != "0":
+        run_migrations(settings)
+
+    port = int(os.getenv("LESSON_IMAGE_STUDIO_PORT", "8000"))
+    uvicorn.run(app, host="127.0.0.1", port=port, reload=False)

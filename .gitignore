@@ -4,10 +4,14 @@
 backend/.venv/
 backend/.pytest_cache/
 backend/**/__pycache__/
+backend/build/
+backend/dist/
+backend/*.spec
 
 # Node
 frontend/node_modules/
 frontend/dist/
+frontend/release/
 /package-lock.json
 
 # Local reference images

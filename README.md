@@ -84,6 +84,17 @@ npm run test
 npm run build
 ```
 
+## Windows 便携版打包
+
+桌面版在 `codex/electron-packaging` 分支构建。GitHub Actions 会在 Windows runner 上完成两步：
+
+1. 用 PyInstaller 把 `backend` 打成内置后端 `lesson-image-studio-backend.exe`
+2. 用 electron-builder 把前端和内置后端打成 Windows x64 便携 `.exe`
+
+手动触发：GitHub 仓库页 -> Actions -> Build Windows Portable -> Run workflow。
+
+产物：`Lesson-Image-Studio-Windows-Portable` artifact。第一版不内置任何 OpenAI/TAL 密钥，用户仍在设置页本地填写。
+
 ## 文档
 
 - [ARCHITECTURE.md](docs/ARCHITECTURE.md)
