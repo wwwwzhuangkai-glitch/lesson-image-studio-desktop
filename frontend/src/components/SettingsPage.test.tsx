@@ -12,6 +12,7 @@ const apiMocks = vi.hoisted(() => ({
   getAppSettings: vi.fn(),
   setOpenAIKey: vi.fn(),
   setTalKey: vi.fn(),
+  testTalConnectivity: vi.fn(),
   updateAppSettings: vi.fn(),
 }))
 
@@ -21,6 +22,7 @@ vi.mock('../lib/api', () => ({
   getAppSettings: apiMocks.getAppSettings,
   setOpenAIKey: apiMocks.setOpenAIKey,
   setTalKey: apiMocks.setTalKey,
+  testTalConnectivity: apiMocks.testTalConnectivity,
   updateAppSettings: apiMocks.updateAppSettings,
 }))
 
@@ -68,6 +70,17 @@ beforeEach(() => {
     currentSettings = { ...currentSettings, has_tal_service_api_key: false }
     return currentSettings
   })
+  apiMocks.testTalConnectivity.mockImplementation(async () => ({
+    ok: false,
+    provider: 'tal_gpt_image_2',
+    method: 'POST',
+    url: 'http://ai-service.tal.com/openai-compatible/v1/images/generations',
+    status_code: null,
+    elapsed_ms: 12,
+    error_type: 'RemoteProtocolError',
+    error_message: 'Server disconnected without sending a response.',
+    response_excerpt: null,
+  }))
 })
 
 function renderSettingsPage() {
@@ -142,4 +155,20 @@ it('keeps export format and concurrency as general defaults for TAL provider', a
       max_concurrent_jobs: 4,
     })
   })
+})
+
+it('shows raw TAL connectivity diagnostics', async () => {
+  currentSettings = {
+    ...currentSettings,
+    default_provider: 'tal_gpt_image_2',
+    has_tal_service_api_key: true,
+  }
+  renderSettingsPage()
+
+  expect(await screen.findByText('TAL gpt-image-2 配置')).toBeInTheDocument()
+  fireEvent.click(screen.getByRole('button', { name: '测试公司 AI 服务连接' }))
+
+  expect(await screen.findByText('连接失败')).toBeInTheDocument()
+  expect(screen.getByText('RemoteProtocolError: Server disconnected without sending a response.')).toBeInTheDocument()
+  expect(apiMocks.testTalConnectivity).toHaveBeenCalledTimes(1)
 })

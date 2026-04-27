@@ -1551,6 +1551,40 @@ a {
   background: currentColor;
 }
 
+.connectivity-result {
+  display: grid;
+  gap: 0.3rem;
+  padding: 0.75rem 0.85rem;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  background: var(--surface-hover);
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  overflow-wrap: anywhere;
+}
+
+.connectivity-result strong {
+  color: var(--text);
+}
+
+.connectivity-result.ok {
+  border-color: color-mix(in srgb, var(--success) 45%, var(--border));
+}
+
+.connectivity-result.failed {
+  border-color: color-mix(in srgb, var(--danger) 45%, var(--border));
+}
+
+.connectivity-result.failed strong {
+  color: var(--danger);
+}
+
+.connectivity-result pre {
+  margin: 0.2rem 0 0;
+  white-space: pre-wrap;
+  color: var(--text);
+}
+
 @media (max-width: 1240px) {
   .workbench-shell,
   .editor-workbench {

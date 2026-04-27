@@ -32,6 +32,7 @@ from .schemas import (
     PromptPresetCreateRequest,
     PromptPresetResponse,
     PromptPresetUpdateRequest,
+    ProviderConnectivityResponse,
     PublishRecordResponse,
     PublishRequest,
     RecycleBinResponse,
@@ -52,6 +53,7 @@ from .services.app_settings import (
     set_openai_api_key,
     set_tal_service_api_key,
 )
+from .services.connectivity import test_tal_connectivity
 from .services.image_items import (
     OwnerTaskSummary,
     build_version_tree,
@@ -910,3 +912,14 @@ def clear_tal_key_endpoint(
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     return _serialize_app_settings(row, settings.openai_api_key)
+
+
+@router.post("/settings/tal-connectivity", response_model=ProviderConnectivityResponse)
+def test_tal_connectivity_endpoint(
+    db: Session = Depends(get_db),
+) -> ProviderConnectivityResponse:
+    try:
+        row = load_app_settings(db)
+    except ValueError as exc:
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+    return ProviderConnectivityResponse.model_validate(test_tal_connectivity(row))

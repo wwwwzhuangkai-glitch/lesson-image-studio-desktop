@@ -3,6 +3,7 @@ from __future__ import annotations
 from io import BytesIO
 from pathlib import Path
 
+import httpx
 from PIL import Image
 from alembic import command
 from alembic.config import Config
@@ -608,6 +609,42 @@ def test_tal_key_requires_app_id_api_key_shape(client):
     response = client.put("/api/settings/tal-key", json={"tal_service_api_key": "missing-colon"})
     assert response.status_code == 400
     assert "appId:apiKey" in response.json()["detail"]
+
+
+def test_tal_connectivity_reports_missing_key(client):
+    response = client.post("/api/settings/tal-connectivity")
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["ok"] is False
+    assert payload["provider"] == "tal_gpt_image_2"
+    assert payload["error_type"] == "missing_tal_service_api_key"
+
+
+def test_tal_connectivity_reports_raw_network_failure(client, monkeypatch):
+    class FakeClient:
+        def __init__(self, *args, **kwargs) -> None:
+            pass
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *args) -> None:
+            pass
+
+        def post(self, *args, **kwargs):
+            raise httpx.RemoteProtocolError("Server disconnected without sending a response.")
+
+    client.put("/api/settings/tal-key", json={"tal_service_api_key": "app-id:api-key"})
+    monkeypatch.setattr("lesson_image_studio_backend.services.connectivity.httpx.Client", FakeClient)
+
+    response = client.post("/api/settings/tal-connectivity")
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["ok"] is False
+    assert payload["method"] == "POST"
+    assert payload["status_code"] is None
+    assert payload["error_type"] == "RemoteProtocolError"
+    assert "Server disconnected" in payload["error_message"]
 
 
 def test_tal_provider_missing_config_fails_job_without_500(client):

@@ -205,3 +205,15 @@ export interface AppSettingsUpdate {
   theme_variant?: ThemeVariant
   max_concurrent_jobs?: number
 }
+
+export interface ProviderConnectivityResult {
+  ok: boolean
+  provider: ProviderId
+  method: string
+  url: string
+  status_code: number | null
+  elapsed_ms: number
+  error_type: string | null
+  error_message: string | null
+  response_excerpt: string | null
+}

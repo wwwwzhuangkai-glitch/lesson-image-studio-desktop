@@ -13,6 +13,7 @@ import type {
   OwnerOverview,
   Quality,
   PromptPreset,
+  ProviderConnectivityResult,
   PublishRecord,
   RecycleBin,
   SizeMode,
@@ -277,4 +278,8 @@ export function setTalKey(key: string) {
 
 export function clearTalKey() {
   return request<AppSettings>('/api/settings/tal-key', { method: 'DELETE' })
+}
+
+export function testTalConnectivity() {
+  return request<ProviderConnectivityResult>('/api/settings/tal-connectivity', { method: 'POST' })
 }

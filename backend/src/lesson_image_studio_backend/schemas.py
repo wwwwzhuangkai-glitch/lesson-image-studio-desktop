@@ -305,5 +305,17 @@ class TalKeyUpdateRequest(BaseModel):
     tal_service_api_key: str = Field(min_length=1)
 
 
+class ProviderConnectivityResponse(BaseModel):
+    ok: bool
+    provider: ProviderId
+    method: str
+    url: str
+    status_code: int | None
+    elapsed_ms: int
+    error_type: str | None
+    error_message: str | None
+    response_excerpt: str | None
+
+
 ImageItemSummaryResponse.model_rebuild()
 ImageItemDetailResponse.model_rebuild()

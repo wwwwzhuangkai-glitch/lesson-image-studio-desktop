@@ -9,10 +9,11 @@ import {
   getAppSettings,
   setOpenAIKey,
   setTalKey,
+  testTalConnectivity,
   updateAppSettings,
 } from '../lib/api'
 import { useUiStore } from '../store/uiStore'
-import type { AppSettings, ExportFormat, ProviderId, ThemeMode, ThemeVariant } from '../types/api'
+import type { AppSettings, ExportFormat, ProviderConnectivityResult, ProviderId, ThemeMode, ThemeVariant } from '../types/api'
 import { AppTopbar } from './AppTopbar'
 import { useInputDialog } from './InputDialog'
 
@@ -43,6 +44,7 @@ export function SettingsPage() {
   const [talKeyDraft, setTalKeyDraft] = useState('')
   const [exportDraft, setExportDraft] = useState<ExportFormat>('png')
   const [concurrencyDraft, setConcurrencyDraft] = useState(2)
+  const [talConnectivityResult, setTalConnectivityResult] = useState<ProviderConnectivityResult | null>(null)
 
   useEffect(() => {
     if (query.data) {
@@ -106,6 +108,20 @@ export function SettingsPage() {
       pushNotice({ title: '公司认证值已清空' })
     },
     onError: (error: Error) => pushNotice({ title: '清空失败', body: error.message }),
+  })
+
+  const testTalConnectivityMutation = useMutation({
+    mutationFn: testTalConnectivity,
+    onSuccess: (data) => {
+      setTalConnectivityResult(data)
+      pushNotice({
+        title: data.ok ? '公司 AI 服务连接成功' : '公司 AI 服务连接失败',
+        body: data.ok
+          ? `HTTP ${data.status_code ?? '-'} · ${data.elapsed_ms}ms`
+          : [data.error_type, data.error_message].filter(Boolean).join(': '),
+      })
+    },
+    onError: (error: Error) => pushNotice({ title: '连接测试失败', body: error.message }),
   })
 
   const settings: AppSettings | undefined = query.data
@@ -393,6 +409,32 @@ export function SettingsPage() {
                       <span className="settings-help">保存后不会再从接口回传任何字符。</span>
                     </div>
                   </form>
+                  <div className="settings-row">
+                    <div className="settings-inline">
+                      <button
+                        type="button"
+                        className="ghost-button small"
+                        disabled={testTalConnectivityMutation.isPending}
+                        onClick={() => testTalConnectivityMutation.mutate()}
+                      >
+                        {testTalConnectivityMutation.isPending ? '正在测试连接…' : '测试公司 AI 服务连接'}
+                      </button>
+                      <span className="settings-help">使用已保存认证值向生图接口发送一次测试请求。</span>
+                    </div>
+                    {talConnectivityResult ? (
+                      <div className={`connectivity-result${talConnectivityResult.ok ? ' ok' : ' failed'}`}>
+                        <strong>{talConnectivityResult.ok ? '连接成功' : '连接失败'}</strong>
+                        <span>{`${talConnectivityResult.method} ${talConnectivityResult.url}`}</span>
+                        <span>{`HTTP ${talConnectivityResult.status_code ?? '-'} · ${talConnectivityResult.elapsed_ms}ms`}</span>
+                        {talConnectivityResult.error_type || talConnectivityResult.error_message ? (
+                          <span>{[talConnectivityResult.error_type, talConnectivityResult.error_message].filter(Boolean).join(': ')}</span>
+                        ) : null}
+                        {talConnectivityResult.response_excerpt ? (
+                          <pre>{talConnectivityResult.response_excerpt}</pre>
+                        ) : null}
+                      </div>
+                    ) : null}
+                  </div>
                 </>
               ) : null}
             </section>
